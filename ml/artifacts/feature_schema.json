@@ -1,0 +1,53 @@
+{
+  "feature_columns": [
+    "payment_method",
+    "bank",
+    "merchant_type",
+    "observed_status_at_snapshot",
+    "amount",
+    "hour_of_day",
+    "day_of_week",
+    "previous_payment_count",
+    "previous_success_rate",
+    "event_count",
+    "duplicate_event_count",
+    "time_since_payment_sec",
+    "time_since_last_event_sec",
+    "event_order_anomaly"
+  ],
+  "categorical_encoders": {
+    "payment_method": {
+      "CARD": 0,
+      "NETBANKING": 1,
+      "UPI": 2,
+      "WALLET": 3
+    },
+    "bank": {
+      "BANK_A": 0,
+      "BANK_B": 1,
+      "BANK_C": 2,
+      "BANK_D": 3,
+      "BANK_E": 4
+    },
+    "merchant_type": {
+      "card_heavy": 0,
+      "high_ticket": 1,
+      "high_volume": 2,
+      "small": 3,
+      "stable": 4,
+      "subscription_heavy": 5,
+      "upi_heavy": 6,
+      "volatile": 7
+    },
+    "observed_status_at_snapshot": {
+      "FAILED": 0,
+      "PENDING": 1,
+      "SUCCESS": 2
+    }
+  },
+  "target": "final_observed_state",
+  "classes": [
+    "FAILED",
+    "SUCCESS"
+  ]
+}

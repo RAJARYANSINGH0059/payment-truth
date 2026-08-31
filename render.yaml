@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: payment-truth-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: RAZORPAY_ENV
+        value: test
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      # No DATABASE_URL set on purpose: Render's free managed Postgres
+      # expires after 30 days, and this app works fine on SQLite for a
+      # demo/hackathon deployment (config.py defaults to
+      # sqlite:///./payment_truth.db). The SQLite file resets whenever the
+      # free instance redeploys or spins down -- acceptable for judging,
+      # not for production. Set DATABASE_URL to a Postgres URL here later
+      # if persistence across restarts becomes important.
+      - key: LLM_PROVIDER
+        value: mock
+      - key: LLM_API_KEY
+        sync: false
+      # ML_ARTIFACTS_DIR is already set as an absolute path (/app/ml/artifacts)
+      # inside backend/Dockerfile, so it doesn't need to be repeated here.
+
+# Frontend is deployed separately on Vercel (not Render) -- see README
+# "Deploying for free". Vercel builds Next.js natively with no Docker
+# build step and has no cold-start sleep, which suits a public-facing UI
+# better than a second free Render service would.

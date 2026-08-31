@@ -1,0 +1,303 @@
+{
+  "phase": "3-4",
+  "feature_columns": [
+    "payment_method",
+    "bank",
+    "merchant_type",
+    "observed_status_at_snapshot",
+    "amount",
+    "hour_of_day",
+    "day_of_week",
+    "previous_payment_count",
+    "previous_success_rate",
+    "event_count",
+    "duplicate_event_count",
+    "time_since_payment_sec",
+    "time_since_last_event_sec",
+    "event_order_anomaly"
+  ],
+  "classes": [
+    "FAILED",
+    "SUCCESS"
+  ],
+  "n_train": 12579,
+  "n_val": 2697,
+  "n_test": 2694,
+  "models": {
+    "majority_baseline": {
+      "name": "majority_baseline",
+      "n": 2694,
+      "macro_f1": 0.4821,
+      "per_class": {
+        "FAILED": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 186.0
+        },
+        "SUCCESS": {
+          "precision": 0.931,
+          "recall": 1.0,
+          "f1-score": 0.9642,
+          "support": 2508.0
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "FAILED",
+          "SUCCESS"
+        ],
+        "matrix": [
+          [
+            0,
+            186
+          ],
+          [
+            0,
+            2508
+          ]
+        ]
+      }
+    },
+    "rule_based_baseline": {
+      "name": "rule_based_baseline",
+      "n": 2694,
+      "macro_f1": 0.6782,
+      "per_class": {
+        "FAILED": {
+          "precision": 0.2938,
+          "recall": 1.0,
+          "f1-score": 0.4542,
+          "support": 186.0
+        },
+        "SUCCESS": {
+          "precision": 1.0,
+          "recall": 0.8218,
+          "f1-score": 0.9022,
+          "support": 2508.0
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "FAILED",
+          "SUCCESS"
+        ],
+        "matrix": [
+          [
+            186,
+            0
+          ],
+          [
+            447,
+            2061
+          ]
+        ]
+      }
+    },
+    "logistic_regression": {
+      "name": "logistic_regression",
+      "n": 2694,
+      "macro_f1": 0.9712,
+      "per_class": {
+        "FAILED": {
+          "precision": 1.0,
+          "recall": 0.8978,
+          "f1-score": 0.9462,
+          "support": 186.0
+        },
+        "SUCCESS": {
+          "precision": 0.9925,
+          "recall": 1.0,
+          "f1-score": 0.9962,
+          "support": 2508.0
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "FAILED",
+          "SUCCESS"
+        ],
+        "matrix": [
+          [
+            167,
+            19
+          ],
+          [
+            0,
+            2508
+          ]
+        ]
+      },
+      "brier_score_success": 0.0063
+    },
+    "xgboost_calibrated": {
+      "name": "xgboost_calibrated",
+      "n": 2694,
+      "macro_f1": 0.9712,
+      "per_class": {
+        "FAILED": {
+          "precision": 1.0,
+          "recall": 0.8978,
+          "f1-score": 0.9462,
+          "support": 186.0
+        },
+        "SUCCESS": {
+          "precision": 0.9925,
+          "recall": 1.0,
+          "f1-score": 0.9962,
+          "support": 2508.0
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "FAILED",
+          "SUCCESS"
+        ],
+        "matrix": [
+          [
+            167,
+            19
+          ],
+          [
+            0,
+            2508
+          ]
+        ]
+      },
+      "brier_score_success": 0.0064
+    }
+  },
+  "time_based_holdout": {
+    "name": "xgboost_calibrated_time_holdout",
+    "n": 430,
+    "macro_f1": 0.9681,
+    "per_class": {
+      "FAILED": {
+        "precision": 1.0,
+        "recall": 0.8889,
+        "f1-score": 0.9412,
+        "support": 36.0
+      },
+      "SUCCESS": {
+        "precision": 0.9899,
+        "recall": 1.0,
+        "f1-score": 0.9949,
+        "support": 394.0
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "FAILED",
+        "SUCCESS"
+      ],
+      "matrix": [
+        [
+          32,
+          4
+        ],
+        [
+          0,
+          394
+        ]
+      ]
+    },
+    "brier_score_success": 0.0083
+  },
+  "incident_touched_test_subset": {
+    "name": "xgboost_calibrated_incident_subset",
+    "n": 60,
+    "macro_f1": 0.9443,
+    "per_class": {
+      "FAILED": {
+        "precision": 1.0,
+        "recall": 0.8333,
+        "f1-score": 0.9091,
+        "support": 12.0
+      },
+      "SUCCESS": {
+        "precision": 0.96,
+        "recall": 1.0,
+        "f1-score": 0.9796,
+        "support": 48.0
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "FAILED",
+        "SUCCESS"
+      ],
+      "matrix": [
+        [
+          10,
+          2
+        ],
+        [
+          0,
+          48
+        ]
+      ]
+    },
+    "brier_score_success": 0.031
+  },
+  "shap_top_features": [
+    {
+      "feature": "observed_status_at_snapshot",
+      "mean_abs_shap": 4.0384
+    },
+    {
+      "feature": "event_count",
+      "mean_abs_shap": 1.2761
+    },
+    {
+      "feature": "time_since_payment_sec",
+      "mean_abs_shap": 0.4498
+    },
+    {
+      "feature": "time_since_last_event_sec",
+      "mean_abs_shap": 0.4018
+    },
+    {
+      "feature": "duplicate_event_count",
+      "mean_abs_shap": 0.3469
+    },
+    {
+      "feature": "amount",
+      "mean_abs_shap": 0.2251
+    },
+    {
+      "feature": "previous_success_rate",
+      "mean_abs_shap": 0.224
+    },
+    {
+      "feature": "hour_of_day",
+      "mean_abs_shap": 0.1882
+    },
+    {
+      "feature": "merchant_type",
+      "mean_abs_shap": 0.1667
+    },
+    {
+      "feature": "previous_payment_count",
+      "mean_abs_shap": 0.1563
+    },
+    {
+      "feature": "bank",
+      "mean_abs_shap": 0.1348
+    },
+    {
+      "feature": "payment_method",
+      "mean_abs_shap": 0.1015
+    },
+    {
+      "feature": "event_order_anomaly",
+      "mean_abs_shap": 0.0862
+    },
+    {
+      "feature": "day_of_week",
+      "mean_abs_shap": 0.0538
+    }
+  ],
+  "beats_baseline": true,
+  "best_baseline_macro_f1": 0.6782,
+  "xgboost_macro_f1": 0.9712
+}
