@@ -1,0 +1,86 @@
+{
+  "experiment": "unseen_incident_configuration",
+  "train_config": {
+    "config": "default",
+    "seed": 100,
+    "payments": 6000,
+    "sim_days": 4
+  },
+  "test_config": {
+    "config": "unseen_test",
+    "seed": 999,
+    "payments": 2000,
+    "sim_days": 2
+  },
+  "n_train_fit": 30554,
+  "n_known_holdout": 5381,
+  "n_unseen_test": 11869,
+  "known_configuration": {
+    "macro_f1": 0.9725,
+    "confusion_matrix": {
+      "labels": [
+        "FAILED",
+        "SUCCESS"
+      ],
+      "matrix": [
+        [
+          413,
+          42
+        ],
+        [
+          2,
+          4924
+        ]
+      ]
+    },
+    "per_class": {
+      "FAILED": {
+        "precision": 0.9951807228915662,
+        "recall": 0.9076923076923077,
+        "f1-score": 0.9494252873563218,
+        "support": 455.0
+      },
+      "SUCCESS": {
+        "precision": 0.9915424889246879,
+        "recall": 0.9995939910678034,
+        "f1-score": 0.9955519611807522,
+        "support": 4926.0
+      }
+    }
+  },
+  "unseen_configuration": {
+    "macro_f1": 0.9628,
+    "confusion_matrix": {
+      "labels": [
+        "FAILED",
+        "SUCCESS"
+      ],
+      "matrix": [
+        [
+          2202,
+          268
+        ],
+        [
+          12,
+          9387
+        ]
+      ]
+    },
+    "per_class": {
+      "FAILED": {
+        "precision": 0.994579945799458,
+        "recall": 0.891497975708502,
+        "f1-score": 0.9402220324508966,
+        "support": 2470.0
+      },
+      "SUCCESS": {
+        "precision": 0.9722423614707405,
+        "recall": 0.998723268432812,
+        "f1-score": 0.9853049228508449,
+        "support": 9399.0
+      }
+    }
+  },
+  "generalization_gap_macro_f1": 0.0097,
+  "note": "Unseen config differs in incident severity/duration ranges, bank/method baseline failure rates, and traffic density (see data/config/unseen_test.yaml). Individual incidents still pick banks/methods at random within each config, consistent with the generator's own anti-memorization design."
+}

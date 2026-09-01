@@ -46,6 +46,12 @@ export type PaymentDetail = PaymentSummary & {
     prediction: Record<string, unknown>;
     recommendation: string | null;
     confidence: number | null;
+    verdict: {
+      predicted_class: string;
+      actual_class: string;
+      probability_of_actual_class: number | null;
+      was_correct: boolean;
+    } | null;
   }>;
 };
 
@@ -85,9 +91,26 @@ export type ImportResult = {
   evaluation: { note: string; accuracy: number | null } | null;
 };
 
+export type PredictionVsReality = {
+  total_evaluated: number;
+  correct: number;
+  incorrect: number;
+  accuracy: number | null;
+  average_confidence: number | null;
+  brier_score: number | null;
+  confusion_matrix: { labels: string[]; matrix: Record<string, Record<string, number>> };
+  sample_correct: Array<{ predicted_class: string; actual_class: string; probability_of_actual_class: number | null }>;
+  sample_incorrect: Array<{ predicted_class: string; actual_class: string; probability_of_actual_class: number | null }>;
+};
+
 export const api = {
   health: () => get<Health>("/health"),
   overview: () => get<Overview>("/api/overview"),
+  predictionVsReality: () => get<PredictionVsReality>("/api/experiments/prediction-vs-reality"),
+  experimentUnseenIncident: () => get<Record<string, unknown>>("/api/experiments/unseen-incident"),
+  experimentMemory: () => get<Record<string, unknown>>("/api/experiments/memory"),
+  experimentRevenue: () => get<Record<string, unknown>>("/api/experiments/revenue"),
+  explain: (payload: unknown) => post<{ explanation: string; source: string }>("/api/explain", payload),
   importDataset: async (file: File): Promise<ImportResult> => {
     const form = new FormData();
     form.append("file", file);

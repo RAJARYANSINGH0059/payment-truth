@@ -1,0 +1,37 @@
+# Higher chaos: more frequent/severe incidents, more duplicate and
+# out-of-order delivery, more hard negatives. Useful for stress-testing
+# the incident detector and decision engine against noisier conditions
+# than the default config produces.
+
+bank:
+  base_failure_rate_min: 0.05
+  base_failure_rate_max: 0.15
+  base_latency_ms_min: 400
+  base_latency_ms_max: 2500
+
+customer:
+  normally_successful_rate_min: 0.85
+  normally_successful_rate_max: 0.97
+  failure_prone_rate_min: 0.40
+  failure_prone_rate_max: 0.70
+  other_rate_min: 0.70
+  other_rate_max: 0.92
+
+incident:
+  count_per_sim_days_divisor: 1
+  severity_min: 0.30
+  severity_max: 0.80
+  duration_minutes_min: 15
+  duration_minutes_max: 300
+
+event_delivery:
+  severe_delay_probability: 0.06
+  severe_delay_extra_ms_min: 15000
+  severe_delay_extra_ms_max: 90000
+  duplicate_probability: 0.12
+  out_of_order_probability: 0.20
+
+scenario:
+  late_capture_probability: 0.14
+  late_capture_misleading_event_probability: 0.60
+  hard_negative_probability: 0.25

@@ -1,0 +1,40 @@
+{
+  "experiment": "revenue_protection_ab",
+  "n_payments_evaluated": 1500,
+  "strategy_a_naive": {
+    "description": "RECOVER immediately if observed status is FAILED at first observation, else WAIT.",
+    "action_distribution": {
+      "WAIT": 1440,
+      "RECOVER": 60
+    },
+    "wrong_actions": 78,
+    "wrong_action_value": 122439.09,
+    "unnecessary_retries": 0,
+    "duplicate_risk_value": 0.0,
+    "recovered_value": 55109.13,
+    "protected_value": 1725422.59
+  },
+  "strategy_b_payment_truth": {
+    "description": "Real trained-model prediction + real decision engine (WAIT/VERIFY/RECOVER/STOP); incident-driven STOP excluded from this run to isolate state-prediction comparison.",
+    "action_distribution": {
+      "WAIT": 1314,
+      "RECOVER": 50,
+      "VERIFY": 136
+    },
+    "wrong_actions": 75,
+    "wrong_action_value": 118844.94,
+    "unnecessary_retries": 0,
+    "duplicate_risk_value": 0.0,
+    "recovered_value": 41347.52,
+    "protected_value": 1725422.59
+  },
+  "revenue_exposed_total": 177548.22,
+  "improvement": {
+    "wrong_actions_reduced": 3,
+    "wrong_action_value_reduced": 3594.15,
+    "unnecessary_retries_reduced": 0,
+    "duplicate_risk_value_reduced": 0.0,
+    "protected_value_increase": 0.0
+  },
+  "note": "Strategy B's VERIFY action is never counted as 'wrong' \u2014 it represents deferring to an authoritative check rather than committing to retry or wait blindly, which is the core value proposition being measured here."
+}

@@ -33,10 +33,49 @@ import sys
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 
+import yaml
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from data.schemas.leakage_columns import LEAKAGE_COLUMNS  # noqa: E402
 
-GENERATOR_VERSION = "0.1.0"
+GENERATOR_VERSION = "0.2.0"  # bumped: config now actually loaded from data/config/*.yaml
+
+CONFIG_DIR = os.path.join(os.path.dirname(__file__), "..", "config")
+
+
+def load_config(name: str) -> dict:
+    """Section 45: generator parameters live in data/config/*.yaml, not
+    hardcoded Python constants. Accepts a bare name ("stress") or a full
+    path ("data/config/stress.yaml") per spec section 17's example
+    invocation. Falls back to default.yaml's values (as a literal dict) if
+    the named file doesn't exist, so an unknown --config value degrades
+    safely rather than crashing a demo mid-generation."""
+    base = os.path.basename(name)
+    if base.endswith(".yaml") or base.endswith(".yml"):
+        base = os.path.splitext(base)[0]
+    path = os.path.join(CONFIG_DIR, f"{base}.yaml")
+    if not os.path.exists(path):
+        path = os.path.join(CONFIG_DIR, "default.yaml")
+    if not os.path.exists(path):
+        # Last-resort inline fallback — keeps the generator runnable even
+        # if data/config/ is missing entirely (e.g. a partial checkout).
+        return {
+            "bank": {"base_failure_rate_min": 0.03, "base_failure_rate_max": 0.09,
+                      "base_latency_ms_min": 400, "base_latency_ms_max": 1500},
+            "customer": {"normally_successful_rate_min": 0.90, "normally_successful_rate_max": 0.98,
+                          "failure_prone_rate_min": 0.55, "failure_prone_rate_max": 0.75,
+                          "other_rate_min": 0.80, "other_rate_max": 0.95},
+            "incident": {"count_per_sim_days_divisor": 3, "severity_min": 0.15, "severity_max": 0.55,
+                          "duration_minutes_min": 10, "duration_minutes_max": 240},
+            "event_delivery": {"severe_delay_probability": 0.02, "severe_delay_extra_ms_min": 15000,
+                                 "severe_delay_extra_ms_max": 60000, "duplicate_probability": 0.06,
+                                 "out_of_order_probability": 0.10},
+            "scenario": {"late_capture_probability": 0.08, "late_capture_misleading_event_probability": 0.50,
+                          "hard_negative_probability": 0.15},
+        }
+    with open(path) as f:
+        return yaml.safe_load(f)
+
 
 PAYMENT_METHODS = ["UPI", "CARD", "NETBANKING", "WALLET"]
 BANKS = ["BANK_A", "BANK_B", "BANK_C", "BANK_D", "BANK_E"]
@@ -118,13 +157,14 @@ class Incident:
             return self.severity * (1 - (pos - 0.7) / 0.3)
 
 
-def build_banks(rng: random.Random) -> list[Bank]:
+def build_banks(rng: random.Random, cfg: dict) -> list[Bank]:
+    b_cfg = cfg["bank"]
     banks = []
     for b in BANKS:
         banks.append(Bank(
             name=b,
-            base_failure_rate=rng.uniform(0.03, 0.09),
-            base_latency_ms=rng.uniform(400, 1500),
+            base_failure_rate=rng.uniform(b_cfg["base_failure_rate_min"], b_cfg["base_failure_rate_max"]),
+            base_latency_ms=rng.uniform(b_cfg["base_latency_ms_min"], b_cfg["base_latency_ms_max"]),
         ))
     return banks
 
@@ -144,32 +184,34 @@ def build_merchants(rng: random.Random, n=25) -> list[Merchant]:
     return merchants
 
 
-def build_customers(rng: random.Random, n=4000) -> list[Customer]:
+def build_customers(rng: random.Random, cfg: dict, n=4000) -> list[Customer]:
+    c_cfg = cfg["customer"]
     customers = []
     for i in range(n):
         ctype = rng.choice(CUSTOMER_TYPES)
         prior_count = max(0, int(rng.gauss(8, 12))) if ctype != "new" else 0
         base_rate = {
-            "normally_successful": rng.uniform(0.9, 0.98),
-            "failure_prone": rng.uniform(0.55, 0.75),
-        }.get(ctype, rng.uniform(0.8, 0.95))
+            "normally_successful": rng.uniform(c_cfg["normally_successful_rate_min"], c_cfg["normally_successful_rate_max"]),
+            "failure_prone": rng.uniform(c_cfg["failure_prone_rate_min"], c_cfg["failure_prone_rate_max"]),
+        }.get(ctype, rng.uniform(c_cfg["other_rate_min"], c_cfg["other_rate_max"]))
         customers.append(Customer(id=f"C{i:06d}", type=ctype,
                                    prior_payment_count=prior_count,
                                    prior_success_rate=round(base_rate, 3)))
     return customers
 
 
-def build_incidents(rng: random.Random, sim_start: datetime, sim_days: int) -> list[Incident]:
+def build_incidents(rng: random.Random, cfg: dict, sim_start: datetime, sim_days: int) -> list[Incident]:
     """A handful of latent incidents scattered across the simulated period.
     Cause is NEVER exposed as a feature (see leakage_columns.py); only its
     downstream symptoms (failure-rate/latency shifts) are observable."""
+    i_cfg = cfg["incident"]
     incidents = []
-    n_incidents = max(2, sim_days // 3)
+    n_incidents = max(2, sim_days // i_cfg["count_per_sim_days_divisor"])
     for i in range(n_incidents):
         cause = rng.choice(INCIDENT_CAUSES)
         start_offset_days = rng.uniform(0, sim_days - 0.5)
         start = sim_start + timedelta(days=start_offset_days)
-        duration_min = rng.uniform(10, 240)
+        duration_min = rng.uniform(i_cfg["duration_minutes_min"], i_cfg["duration_minutes_max"])
         end = start + timedelta(minutes=duration_min)
         incidents.append(Incident(
             id=f"INC{i:04d}",
@@ -177,7 +219,7 @@ def build_incidents(rng: random.Random, sim_start: datetime, sim_days: int) -> l
             bank=rng.choice(BANKS) if cause == "BANK_DEGRADATION" else None,
             method=rng.choice(PAYMENT_METHODS) if cause == "PAYMENT_METHOD_DEGRADATION" else None,
             start=start, end=end,
-            severity=rng.uniform(0.15, 0.55),
+            severity=rng.uniform(i_cfg["severity_min"], i_cfg["severity_max"]),
         ))
     # A few "hard negative" traffic spikes with NO incident behind them
     # (section 26) — tagged only for eval, never given to the model.
@@ -215,20 +257,21 @@ def rng_merchant_hit(merchant: Merchant, inc: Incident) -> bool:
     return int(hashlib.md5(f"{merchant.id}{inc.id}".encode()).hexdigest(), 16) % 5 == 0
 
 
-def sample_delivery_delay(rng: random.Random, base_latency_ms: float, latency_bump_ms: float) -> float:
+def sample_delivery_delay(rng: random.Random, base_latency_ms: float, latency_bump_ms: float, cfg: dict) -> float:
     """Lognormal-ish delay: common fast events, a delayed tail, rare severe
     delays (section 13). Not claimed to be measured Razorpay production data
     — an explicitly documented synthetic assumption (see docs/ASSUMPTIONS.md)."""
+    ed_cfg = cfg["event_delivery"]
     mu = math.log(max(base_latency_ms + latency_bump_ms, 50))
     sigma = 0.6
     delay_ms = rng.lognormvariate(mu, sigma)
-    if rng.random() < 0.02:  # rare severe delay tail
-        delay_ms += rng.uniform(15000, 60000)
+    if rng.random() < ed_cfg["severe_delay_probability"]:
+        delay_ms += rng.uniform(ed_cfg["severe_delay_extra_ms_min"], ed_cfg["severe_delay_extra_ms_max"])
     return delay_ms
 
 
 def simulate_payment(rng: random.Random, idx: int, banks, merchants, customers,
-                      incidents, sim_start: datetime, sim_days: int):
+                      incidents, sim_start: datetime, sim_days: int, cfg: dict):
     created_at = sim_start + timedelta(seconds=rng.uniform(0, sim_days * 86400))
     merchant = rng.choice(merchants)
     customer = rng.choice(customers)
@@ -261,12 +304,12 @@ def simulate_payment(rng: random.Random, idx: int, banks, merchants, customers,
         events.append(("payment.authorized", t_auth))
         # small chance of late capture: observed side sees a failure-like
         # signal or long pending gap before the true capture lands.
-        if rng.random() < 0.08:
+        if rng.random() < cfg["scenario"]["late_capture_probability"]:
             scenario = "late_capture"
             capture_delay = rng.uniform(30, 400)
             t_cap = t_auth + timedelta(seconds=capture_delay)
             # inject a misleading early failed-looking event some of the time
-            if rng.random() < 0.5:
+            if rng.random() < cfg["scenario"]["late_capture_misleading_event_probability"]:
                 t_mid = t_auth + timedelta(seconds=rng.uniform(3, 10))
                 events.append(("payment.failed", t_mid))  # transient/misleading
             events.append(("payment.captured", t_cap))
@@ -279,7 +322,7 @@ def simulate_payment(rng: random.Random, idx: int, banks, merchants, customers,
             final_observed_state = "SUCCESS"
             scenario = "normal_success"
 
-    if scenario == "normal_success" and fail_bump < 0.05 and rng.random() < 0.15:
+    if scenario == "normal_success" and fail_bump < 0.05 and rng.random() < cfg["scenario"]["hard_negative_probability"]:
         # hard negative: a traffic-normal payment during a *quiet* window,
         # tagged so eval can check the model doesn't cry wolf.
         is_hard_negative = True
@@ -311,7 +354,7 @@ def simulate_payment(rng: random.Random, idx: int, banks, merchants, customers,
     # --- Event delivery simulation (separate from true event creation) ---
     event_rows = []
     for seq, (etype, etime) in enumerate(events):
-        delay_ms = sample_delivery_delay(rng, bank.base_latency_ms, latency_bump)
+        delay_ms = sample_delivery_delay(rng, bank.base_latency_ms, latency_bump, cfg)
         received = etime + timedelta(milliseconds=delay_ms)
         event_id = f"EV{idx:07d}{seq:02d}"
         event_rows.append({
@@ -322,8 +365,8 @@ def simulate_payment(rng: random.Random, idx: int, banks, merchants, customers,
             "source": "SYNTHETIC",
         })
         # duplicate delivery (section 14): independent extra copy, arrives later
-        if rng.random() < 0.06:
-            dup_delay_ms = sample_delivery_delay(rng, bank.base_latency_ms, latency_bump)
+        if rng.random() < cfg["event_delivery"]["duplicate_probability"]:
+            dup_delay_ms = sample_delivery_delay(rng, bank.base_latency_ms, latency_bump, cfg)
             dup_received = received + timedelta(milliseconds=dup_delay_ms * 0.3 + 200)
             event_rows.append({
                 "event_id": f"{event_id}D", "payment_id": payment_row["payment_id"],
@@ -334,7 +377,7 @@ def simulate_payment(rng: random.Random, idx: int, banks, merchants, customers,
             })
 
     # out-of-order delivery (section 15): swap received_time of two events
-    if len(event_rows) >= 2 and rng.random() < 0.10:
+    if len(event_rows) >= 2 and rng.random() < cfg["event_delivery"]["out_of_order_probability"]:
         a, b = rng.sample(range(len(event_rows)), 2)
         event_rows[a]["received_time"], event_rows[b]["received_time"] = \
             event_rows[b]["received_time"], event_rows[a]["received_time"]
@@ -480,19 +523,20 @@ def main():
     cfg = {"payments": args.payments, "seed": args.seed, "config": args.config, "sim_days": args.sim_days}
     cfg_hash = config_hash(cfg)
     rng = random.Random(args.seed)
+    gen_cfg = load_config(args.config)
 
     sim_start = datetime(2026, 1, 1)
-    banks = build_banks(rng)
+    banks = build_banks(rng, gen_cfg)
     merchants = build_merchants(rng)
-    customers = build_customers(rng)
-    incidents = build_incidents(rng, sim_start, args.sim_days)
+    customers = build_customers(rng, gen_cfg)
+    incidents = build_incidents(rng, gen_cfg, sim_start, args.sim_days)
 
     payments, events, snapshots = [], [], []
     demo_candidates = {"late_capture": None, "genuine_failure": None}
 
     for i in range(args.payments):
         p, e, cust, merch = simulate_payment(rng, i, banks, merchants, customers,
-                                              incidents, sim_start, args.sim_days)
+                                              incidents, sim_start, args.sim_days, gen_cfg)
         s = build_snapshots(p, e, cust, merch)
         payments.append(p)
         events.extend(e)
@@ -535,7 +579,17 @@ def main():
     write_csv(os.path.join(out_dir, "payments.csv"), payments)
     write_csv(os.path.join(out_dir, "payment_events.csv"), events)
     write_csv(os.path.join(out_dir, "observation_snapshots.csv"), snapshots)
-    print(f"\nWrote payments.csv, payment_events.csv, observation_snapshots.csv to {out_dir}")
+
+    # Ground-truth incident causes — evaluation-only (same leakage category
+    # as scenario/incident_id), used by experiments/incident_memory and
+    # never fed to any model as a feature.
+    incidents_truth = [{
+        "incident_id": i.id, "cause": i.cause, "bank": i.bank, "method": i.method,
+        "start": i.start.isoformat(), "end": i.end.isoformat(), "severity": i.severity,
+    } for i in incidents]
+    write_csv(os.path.join(out_dir, "incidents_truth.csv"), incidents_truth)
+    print(f"\nWrote payments.csv, payment_events.csv, observation_snapshots.csv, "
+          f"incidents_truth.csv to {out_dir}")
 
     leak_check_cols = set(snapshots[0].keys()) if snapshots else set()
     print(f"\nLeakage columns present in snapshots (evaluation-only, must be dropped before "

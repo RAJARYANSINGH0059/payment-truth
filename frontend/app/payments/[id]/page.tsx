@@ -46,6 +46,16 @@ export default async function PaymentDetailPage({ params }: { params: { id: stri
                   Prediction: <code className="text-xs">{JSON.stringify(t.prediction)}</code>
                 </div>
                 {t.recommendation && <div className="mt-1">Recommendation: {t.recommendation}</div>}
+                {t.verdict && (
+                  <div className={`mt-2 inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                    t.verdict.was_correct ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"
+                  }`}>
+                    {t.verdict.was_correct ? "✓ CORRECT" : "✗ INCORRECT"} — predicted {t.verdict.predicted_class},
+                    actual {t.verdict.actual_class}
+                    {t.verdict.probability_of_actual_class !== null &&
+                      ` (${Math.round((t.verdict.probability_of_actual_class ?? 0) * 100)}% on actual class)`}
+                  </div>
+                )}
               </div>
             ))}
           </div>

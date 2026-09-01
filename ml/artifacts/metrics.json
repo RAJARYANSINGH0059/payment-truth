@@ -20,26 +20,26 @@
     "FAILED",
     "SUCCESS"
   ],
-  "n_train": 12579,
-  "n_val": 2697,
-  "n_test": 2694,
+  "n_train": 12572,
+  "n_val": 2696,
+  "n_test": 2697,
   "models": {
     "majority_baseline": {
       "name": "majority_baseline",
-      "n": 2694,
-      "macro_f1": 0.4821,
+      "n": 2697,
+      "macro_f1": 0.4839,
       "per_class": {
         "FAILED": {
           "precision": 0.0,
           "recall": 0.0,
           "f1-score": 0.0,
-          "support": 186.0
+          "support": 168.0
         },
         "SUCCESS": {
-          "precision": 0.931,
+          "precision": 0.9377,
           "recall": 1.0,
-          "f1-score": 0.9642,
-          "support": 2508.0
+          "f1-score": 0.9679,
+          "support": 2529.0
         }
       },
       "confusion_matrix": {
@@ -50,31 +50,31 @@
         "matrix": [
           [
             0,
-            186
+            168
           ],
           [
             0,
-            2508
+            2529
           ]
         ]
       }
     },
     "rule_based_baseline": {
       "name": "rule_based_baseline",
-      "n": 2694,
-      "macro_f1": 0.6782,
+      "n": 2697,
+      "macro_f1": 0.6476,
       "per_class": {
         "FAILED": {
-          "precision": 0.2938,
+          "precision": 0.253,
           "recall": 1.0,
-          "f1-score": 0.4542,
-          "support": 186.0
+          "f1-score": 0.4038,
+          "support": 168.0
         },
         "SUCCESS": {
           "precision": 1.0,
-          "recall": 0.8218,
-          "f1-score": 0.9022,
-          "support": 2508.0
+          "recall": 0.8039,
+          "f1-score": 0.8913,
+          "support": 2529.0
         }
       },
       "confusion_matrix": {
@@ -84,32 +84,32 @@
         ],
         "matrix": [
           [
-            186,
+            168,
             0
           ],
           [
-            447,
-            2061
+            496,
+            2033
           ]
         ]
       }
     },
     "logistic_regression": {
       "name": "logistic_regression",
-      "n": 2694,
-      "macro_f1": 0.9712,
+      "n": 2697,
+      "macro_f1": 0.9685,
       "per_class": {
         "FAILED": {
-          "precision": 1.0,
-          "recall": 0.8978,
-          "f1-score": 0.9462,
-          "support": 186.0
+          "precision": 0.9869,
+          "recall": 0.8988,
+          "f1-score": 0.9408,
+          "support": 168.0
         },
         "SUCCESS": {
-          "precision": 0.9925,
-          "recall": 1.0,
-          "f1-score": 0.9962,
-          "support": 2508.0
+          "precision": 0.9933,
+          "recall": 0.9992,
+          "f1-score": 0.9963,
+          "support": 2529.0
         }
       },
       "confusion_matrix": {
@@ -119,70 +119,70 @@
         ],
         "matrix": [
           [
-            167,
-            19
+            151,
+            17
           ],
           [
-            0,
-            2508
-          ]
-        ]
-      },
-      "brier_score_success": 0.0063
-    },
-    "xgboost_calibrated": {
-      "name": "xgboost_calibrated",
-      "n": 2694,
-      "macro_f1": 0.9712,
-      "per_class": {
-        "FAILED": {
-          "precision": 1.0,
-          "recall": 0.8978,
-          "f1-score": 0.9462,
-          "support": 186.0
-        },
-        "SUCCESS": {
-          "precision": 0.9925,
-          "recall": 1.0,
-          "f1-score": 0.9962,
-          "support": 2508.0
-        }
-      },
-      "confusion_matrix": {
-        "labels": [
-          "FAILED",
-          "SUCCESS"
-        ],
-        "matrix": [
-          [
-            167,
-            19
-          ],
-          [
-            0,
-            2508
+            2,
+            2527
           ]
         ]
       },
       "brier_score_success": 0.0064
+    },
+    "xgboost_calibrated": {
+      "name": "xgboost_calibrated",
+      "n": 2697,
+      "macro_f1": 0.9685,
+      "per_class": {
+        "FAILED": {
+          "precision": 0.9869,
+          "recall": 0.8988,
+          "f1-score": 0.9408,
+          "support": 168.0
+        },
+        "SUCCESS": {
+          "precision": 0.9933,
+          "recall": 0.9992,
+          "f1-score": 0.9963,
+          "support": 2529.0
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "FAILED",
+          "SUCCESS"
+        ],
+        "matrix": [
+          [
+            151,
+            17
+          ],
+          [
+            2,
+            2527
+          ]
+        ]
+      },
+      "brier_score_success": 0.0063
     }
   },
   "time_based_holdout": {
     "name": "xgboost_calibrated_time_holdout",
-    "n": 430,
-    "macro_f1": 0.9681,
+    "n": 492,
+    "macro_f1": 0.9526,
     "per_class": {
       "FAILED": {
-        "precision": 1.0,
-        "recall": 0.8889,
-        "f1-score": 0.9412,
+        "precision": 0.9688,
+        "recall": 0.8611,
+        "f1-score": 0.9118,
         "support": 36.0
       },
       "SUCCESS": {
-        "precision": 0.9899,
-        "recall": 1.0,
-        "f1-score": 0.9949,
-        "support": 394.0
+        "precision": 0.9891,
+        "recall": 0.9978,
+        "f1-score": 0.9934,
+        "support": 456.0
       }
     },
     "confusion_matrix": {
@@ -192,33 +192,33 @@
       ],
       "matrix": [
         [
-          32,
-          4
+          31,
+          5
         ],
         [
-          0,
-          394
+          1,
+          455
         ]
       ]
     },
-    "brier_score_success": 0.0083
+    "brier_score_success": 0.0109
   },
   "incident_touched_test_subset": {
     "name": "xgboost_calibrated_incident_subset",
-    "n": 60,
-    "macro_f1": 0.9443,
+    "n": 41,
+    "macro_f1": 0.9698,
     "per_class": {
       "FAILED": {
         "precision": 1.0,
-        "recall": 0.8333,
-        "f1-score": 0.9091,
+        "recall": 0.9167,
+        "f1-score": 0.9565,
         "support": 12.0
       },
       "SUCCESS": {
-        "precision": 0.96,
+        "precision": 0.9667,
         "recall": 1.0,
-        "f1-score": 0.9796,
-        "support": 48.0
+        "f1-score": 0.9831,
+        "support": 29.0
       }
     },
     "confusion_matrix": {
@@ -228,76 +228,76 @@
       ],
       "matrix": [
         [
-          10,
-          2
+          11,
+          1
         ],
         [
           0,
-          48
+          29
         ]
       ]
     },
-    "brier_score_success": 0.031
+    "brier_score_success": 0.0221
   },
   "shap_top_features": [
     {
       "feature": "observed_status_at_snapshot",
-      "mean_abs_shap": 4.0384
+      "mean_abs_shap": 4.1389
     },
     {
       "feature": "event_count",
-      "mean_abs_shap": 1.2761
-    },
-    {
-      "feature": "time_since_payment_sec",
-      "mean_abs_shap": 0.4498
-    },
-    {
-      "feature": "time_since_last_event_sec",
-      "mean_abs_shap": 0.4018
+      "mean_abs_shap": 1.6361
     },
     {
       "feature": "duplicate_event_count",
-      "mean_abs_shap": 0.3469
+      "mean_abs_shap": 0.3882
     },
     {
       "feature": "amount",
-      "mean_abs_shap": 0.2251
+      "mean_abs_shap": 0.27
+    },
+    {
+      "feature": "time_since_last_event_sec",
+      "mean_abs_shap": 0.262
+    },
+    {
+      "feature": "time_since_payment_sec",
+      "mean_abs_shap": 0.2564
     },
     {
       "feature": "previous_success_rate",
-      "mean_abs_shap": 0.224
+      "mean_abs_shap": 0.2508
     },
     {
       "feature": "hour_of_day",
-      "mean_abs_shap": 0.1882
-    },
-    {
-      "feature": "merchant_type",
-      "mean_abs_shap": 0.1667
+      "mean_abs_shap": 0.2247
     },
     {
       "feature": "previous_payment_count",
-      "mean_abs_shap": 0.1563
+      "mean_abs_shap": 0.185
     },
     {
       "feature": "bank",
-      "mean_abs_shap": 0.1348
-    },
-    {
-      "feature": "payment_method",
-      "mean_abs_shap": 0.1015
+      "mean_abs_shap": 0.1419
     },
     {
       "feature": "event_order_anomaly",
-      "mean_abs_shap": 0.0862
+      "mean_abs_shap": 0.1322
+    },
+    {
+      "feature": "merchant_type",
+      "mean_abs_shap": 0.1169
+    },
+    {
+      "feature": "payment_method",
+      "mean_abs_shap": 0.085
     },
     {
       "feature": "day_of_week",
-      "mean_abs_shap": 0.0538
+      "mean_abs_shap": 0.0285
     }
   ],
   "beats_baseline": true,
-  "best_baseline_macro_f1": 0.6782,
-  "xgboost_macro_f1": 0.9712
+  "best_baseline_macro_f1": 0.6476,
+  "xgboost_macro_f1": 0.9685
 }

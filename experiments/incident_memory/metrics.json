@@ -1,0 +1,24 @@
+{
+  "experiment": "incident_memory_ab",
+  "config": {
+    "config": "stress",
+    "seed": 55,
+    "payments": 12000,
+    "sim_days": 15
+  },
+  "n_incidents_total": 15,
+  "n_scored_incidents": 10,
+  "skipped_low_volume_window": 0,
+  "skipped_systemic_no_category_match": 5,
+  "without_memory": {
+    "root_cause_top1_accuracy": 0.3,
+    "average_confidence": 0.224
+  },
+  "with_memory": {
+    "root_cause_top1_accuracy": 0.3,
+    "average_confidence": 0.284
+  },
+  "accuracy_improvement": 0.0,
+  "confidence_improvement": 0.06,
+  "note": "The decision engine's WAIT/VERIFY/RECOVER/STOP output does not currently take diagnosed root cause as an input (severity/financial exposure drive it instead), so decision accuracy is identical between variants by construction \u2014 reported honestly rather than a fabricated difference. Memory's measured effect here is limited to root-cause confidence/accuracy, not the final action taken."
+}

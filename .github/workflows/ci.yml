@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt pytest
+      - name: Run backend tests
+        run: python -m pytest tests/ -v
+
+  ml-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Generate small dataset (config-driven)
+        run: python scripts/generate_dataset.py --payments 500 --seed 1 --sim-days 1 --config default --out-dir /tmp/ci-data
+      - name: Train model (smoke)
+        run: python ml/pipeline/train.py --data /tmp/ci-data --out /tmp/ci-artifacts
+      - name: Incident detector (smoke)
+        run: python ml/pipeline/incident_detector.py --data /tmp/ci-data --out /tmp/ci-artifacts
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install --no-audit --no-fund
+      - name: Typecheck
+        working-directory: frontend
+        run: npx tsc --noEmit
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t payment-truth-backend .
+      - name: Build frontend image
+        run: docker build -f frontend/Dockerfile -t payment-truth-frontend .

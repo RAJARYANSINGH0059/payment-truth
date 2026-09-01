@@ -1,0 +1,47 @@
+# Deliberately different incident/traffic characteristics from
+# default.yaml — used ONLY by experiments/unseen_incident/run.py as a
+# held-out test distribution the model never trains on. Differs in
+# severity range, duration range, incident frequency, bank/method
+# baseline failure rates, and hard-negative rate — the dimensions named
+# in the completion prompt's section 4 ("vary traffic intensity, payment
+# method mix, severity, incident duration, baseline failure rate").
+#
+# Individual incidents still pick their affected bank/method at random
+# (not pinned to one fixed bank) — pinning to a single bank would
+# contradict this project's own anti-memorization principle (see
+# generate_dataset.py build_incidents docstring: "do not make one bank
+# permanently the bad bank"). The distributional shift is what makes this
+# genuinely unseen, not a hidden identical config.
+
+bank:
+  base_failure_rate_min: 0.06
+  base_failure_rate_max: 0.18
+  base_latency_ms_min: 600
+  base_latency_ms_max: 3000
+
+customer:
+  normally_successful_rate_min: 0.82
+  normally_successful_rate_max: 0.95
+  failure_prone_rate_min: 0.35
+  failure_prone_rate_max: 0.65
+  other_rate_min: 0.65
+  other_rate_max: 0.90
+
+incident:
+  count_per_sim_days_divisor: 1
+  severity_min: 0.45
+  severity_max: 0.90
+  duration_minutes_min: 20
+  duration_minutes_max: 300
+
+event_delivery:
+  severe_delay_probability: 0.05
+  severe_delay_extra_ms_min: 20000
+  severe_delay_extra_ms_max: 90000
+  duplicate_probability: 0.10
+  out_of_order_probability: 0.18
+
+scenario:
+  late_capture_probability: 0.12
+  late_capture_misleading_event_probability: 0.55
+  hard_negative_probability: 0.20

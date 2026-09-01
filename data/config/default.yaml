@@ -1,0 +1,38 @@
+# Payment Truth — synthetic generator configuration (spec section 45).
+# --config default (the implicit default if --config is omitted) uses
+# these values. Loaded by data/generators/generate_dataset.py at startup;
+# nothing here is read anywhere else, so changing a value only affects
+# the next dataset generation run, never retroactively changes committed data.
+
+bank:
+  base_failure_rate_min: 0.03
+  base_failure_rate_max: 0.09
+  base_latency_ms_min: 400
+  base_latency_ms_max: 1500
+
+customer:
+  normally_successful_rate_min: 0.90
+  normally_successful_rate_max: 0.98
+  failure_prone_rate_min: 0.55
+  failure_prone_rate_max: 0.75
+  other_rate_min: 0.80
+  other_rate_max: 0.95
+
+incident:
+  count_per_sim_days_divisor: 3   # n_incidents = max(2, sim_days // this)
+  severity_min: 0.15
+  severity_max: 0.55
+  duration_minutes_min: 10
+  duration_minutes_max: 240
+
+event_delivery:
+  severe_delay_probability: 0.02       # rare heavy-tail delay beyond lognormal
+  severe_delay_extra_ms_min: 15000
+  severe_delay_extra_ms_max: 60000
+  duplicate_probability: 0.06
+  out_of_order_probability: 0.10
+
+scenario:
+  late_capture_probability: 0.08
+  late_capture_misleading_event_probability: 0.50
+  hard_negative_probability: 0.15      # only applies to quiet-window normal_success payments

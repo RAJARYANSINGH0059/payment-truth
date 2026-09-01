@@ -1,0 +1,6 @@
+{
+  "config": "default",
+  "seed": 100,
+  "payments": 6000,
+  "sim_days": 4
+}

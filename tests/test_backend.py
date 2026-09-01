@@ -188,3 +188,69 @@ def test_simulation_generate_reaches_all_four_decisions(client):
         if detail["timeline"]:
             decisions.add(detail["timeline"][0]["recommendation"])
     assert decisions == {"WAIT", "VERIFY", "RECOVER", "STOP"}
+
+
+def test_prediction_vs_reality_computes_real_verdicts(client):
+    """The verdict (CORRECT/INCORRECT) must actually be computed, not just
+    left as an unused schema field — this was a real gap found during
+    audit (Prediction.was_correct existed but nothing ever set it)."""
+    r = client.post("/api/simulation/generate", params={"payments": 1000, "seed": 3, "sim_days": 1})
+    assert r.status_code == 200
+
+    payments = client.get("/api/payments?limit=1000").json()
+    found_verdict = False
+    for p in payments[:50]:
+        detail = client.get(f"/api/payments/{p['payment_id']}").json()
+        for entry in detail["timeline"]:
+            if entry["verdict"] is not None:
+                found_verdict = True
+                assert entry["verdict"]["predicted_class"] in ("SUCCESS", "PENDING", "FAILED")
+                assert entry["verdict"]["actual_class"] in ("SUCCESS", "PENDING", "FAILED")
+                assert isinstance(entry["verdict"]["was_correct"], bool)
+    assert found_verdict, "expected at least one resolved prediction with a computed verdict"
+
+    agg = client.get("/api/experiments/prediction-vs-reality").json()
+    assert agg["total_evaluated"] > 0
+    assert agg["correct"] + agg["incorrect"] == agg["total_evaluated"]
+    assert 0.0 <= agg["accuracy"] <= 1.0
+
+
+def test_explain_endpoint_falls_back_deterministically(client):
+    """No LLM key configured in test env -> must return a real, coherent
+    explanation and honestly label its source, never silently blank."""
+    r = client.post("/api/explain", json={
+        "prediction": "PENDING", "probabilities": {"success": 0.11, "pending": 0.82, "failed": 0.07},
+        "evidence": ["high_webhook_delay", "late_capture_pattern"], "recommendation": "VERIFY",
+    })
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source"] == "DETERMINISTIC_FALLBACK"
+    assert "pending" in body["explanation"].lower()
+    assert len(body["explanation"]) > 20
+
+
+def test_generator_config_actually_changes_output():
+    """The --config flag must genuinely change generated data, not just
+    be a label used for hashing — this was a real gap found during audit
+    (--config was accepted but never loaded)."""
+    import subprocess
+    import sys as _sys
+    import tempfile
+    import pandas as pd
+    import os as _os
+
+    repo_root = _os.path.join(_os.path.dirname(__file__), "..")
+    with tempfile.TemporaryDirectory() as default_dir, tempfile.TemporaryDirectory() as stress_dir:
+        for config_name, out_dir in [("default", default_dir), ("stress", stress_dir)]:
+            subprocess.run(
+                [_sys.executable, "scripts/generate_dataset.py", "--payments", "800", "--seed", "1",
+                 "--sim-days", "1", "--config", config_name, "--out-dir", out_dir],
+                cwd=repo_root, check=True, capture_output=True, text=True,
+            )
+        default_payments = pd.read_csv(_os.path.join(default_dir, "payments.csv"))
+        stress_payments = pd.read_csv(_os.path.join(stress_dir, "payments.csv"))
+        default_fail_rate = (default_payments["true_final_state"] == "FAILED").mean()
+        stress_fail_rate = (stress_payments["true_final_state"] == "FAILED").mean()
+        # stress.yaml has higher failure-rate ranges than default.yaml —
+        # the two runs must actually differ, not silently produce identical data.
+        assert stress_fail_rate > default_fail_rate

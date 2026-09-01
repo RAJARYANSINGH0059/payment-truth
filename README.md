@@ -168,29 +168,86 @@ Razorpay being unset is never a startup failure.
 
 ## Architecture
 
+### System flow
+
+```mermaid
+flowchart TD
+    subgraph DataSources["DATA SOURCES"]
+        SIM["Synthetic Simulator<br/>(data/generators, config-driven<br/>via data/config/*.yaml)"]
+        UPLOAD["CSV/JSON Upload"]
+        RZP["Razorpay Test Mode<br/>(webhook + API)"]
+    end
+
+    subgraph Backend["BACKEND (FastAPI)"]
+        LOADER["simulation_loader.py<br/>scores every payment with<br/>the real trained model"]
+        DECIDE["decision_engine.py<br/>root-cause + financial-impact<br/>+ WAIT/VERIFY/RECOVER/STOP"]
+        DB[("SQLite / PostgreSQL")]
+        ML["ml_inference.py<br/>loads ml/artifacts, never<br/>retrains at request time"]
+    end
+
+    subgraph Frontend["FRONTEND (Next.js)"]
+        UI_UNDERSTAND["UNDERSTAND<br/>Overview · Payments · Incidents"]
+        UI_LEARN["LEARN<br/>Experiments · Models · Audit"]
+        UI_DATA["DATA SOURCES<br/>Simulation · Razorpay Test"]
+    end
+
+    SIM --> LOADER
+    UPLOAD --> LOADER
+    RZP -->|webhook| Backend
+    LOADER --> ML
+    ML --> DECIDE
+    DECIDE --> DB
+    LOADER --> DB
+    DB --> UI_UNDERSTAND
+    DB --> UI_LEARN
+    UI_DATA -.triggers.-> SIM
+    UI_DATA -.triggers.-> UPLOAD
+```
+
+### Repository structure
+
 ```
 payment-truth/
 ├── data/
+│   ├── config/               # default.yaml, stress.yaml, demo.yaml, unseen_test.yaml
 │   ├── schemas/leakage_columns.py   # forbidden model-feature columns
 │   ├── generators/generate_dataset.py  # true-world/observed-world simulator
-│   └── demo/                        # committed small demo dataset
+│   └── demo/                 # committed small demo dataset + incidents_truth.csv
 ├── ml/
 │   ├── pipeline/train.py            # baselines + XGBoost + calibration + SHAP
 │   ├── pipeline/incident_detector.py # rule baseline + Isolation Forest
 │   └── artifacts/                   # committed trained model + metrics
+├── experiments/               # formal, reproducible evaluation scripts
+│   ├── unseen_incident/run.py       # generalization test (spec section 4-7)
+│   ├── incident_memory/run.py       # memory A/B test (spec section 8-10)
+│   └── revenue_protection/run.py    # naive vs Payment Truth A/B (spec section 11-14)
 ├── backend/
 │   └── app/
 │       ├── main.py                  # FastAPI app, /health
 │       ├── decision_engine.py       # root-cause + financial-impact + WAIT/VERIFY/RECOVER/STOP
+│       ├── simulation_loader.py     # scores generated/imported data with the real model
+│       ├── prediction_evaluation.py # Prediction vs Reality verdict computation
+│       ├── historical_similarity.py # structured incident-similarity matching
+│       ├── llm_explain.py           # LLM explanation layer + deterministic fallback
 │       ├── webhook_utils.py         # Razorpay signature validation + normalization
 │       ├── razorpay_client.py       # official Razorpay SDK wrapper
 │       ├── ml_inference.py          # loads ml/artifacts, never retrains at request time
-│       └── routers/                 # webhooks.py, api.py
-├── frontend/                        # Next.js — Overview/Payments/Incidents/Simulation/
-│                                     #   Models/Audit/Razorpay Test/Settings
-├── tests/                           # pytest — webhook signature/dedup, decision engine, leakage
+│       └── routers/                 # split by responsibility — see routers/ARCHITECTURE.md
+│           ├── payments.py · incidents.py · dashboard.py
+│           ├── models_metrics.py · simulation.py
+│           ├── experiments.py · razorpay.py · webhooks.py
+├── frontend/                  # Next.js, nav grouped UNDERSTAND / LEARN / DATA SOURCES / SYSTEM
+├── docs/
+│   ├── ASSUMPTIONS.md         # synthetic vs documented-Razorpay-behavior distinction
+│   ├── ml-results.md          # every reported number, reproducible
+│   └── dataset.md             # data methodology
+├── tests/                     # pytest — webhook signature/dedup, decision engine, leakage,
+│                               #   simulation-loader end-to-end, prediction verdicts, config-driven generation
 └── .github/workflows/ci.yml
 ```
+
+See `backend/app/routers/ARCHITECTURE.md` for the reasoning behind the
+router split and the rule for where a new endpoint should go.
 
 ## Current model results (on the committed demo dataset)
 
