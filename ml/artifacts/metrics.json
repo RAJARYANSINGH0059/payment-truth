@@ -20,26 +20,26 @@
     "FAILED",
     "SUCCESS"
   ],
-  "n_train": 12572,
-  "n_val": 2696,
-  "n_test": 2697,
+  "n_train": 6286,
+  "n_val": 1348,
+  "n_test": 1348,
   "models": {
     "majority_baseline": {
       "name": "majority_baseline",
-      "n": 2697,
-      "macro_f1": 0.4839,
+      "n": 1348,
+      "macro_f1": 0.4707,
       "per_class": {
         "FAILED": {
           "precision": 0.0,
           "recall": 0.0,
           "f1-score": 0.0,
-          "support": 168.0
+          "support": 149.0
         },
         "SUCCESS": {
-          "precision": 0.9377,
+          "precision": 0.8895,
           "recall": 1.0,
-          "f1-score": 0.9679,
-          "support": 2529.0
+          "f1-score": 0.9415,
+          "support": 1199.0
         }
       },
       "confusion_matrix": {
@@ -50,31 +50,31 @@
         "matrix": [
           [
             0,
-            168
+            149
           ],
           [
             0,
-            2529
+            1199
           ]
         ]
       }
     },
     "rule_based_baseline": {
       "name": "rule_based_baseline",
-      "n": 2697,
-      "macro_f1": 0.6476,
+      "n": 1348,
+      "macro_f1": 0.7307,
       "per_class": {
         "FAILED": {
-          "precision": 0.253,
+          "precision": 0.3952,
           "recall": 1.0,
-          "f1-score": 0.4038,
-          "support": 168.0
+          "f1-score": 0.5665,
+          "support": 149.0
         },
         "SUCCESS": {
           "precision": 1.0,
-          "recall": 0.8039,
-          "f1-score": 0.8913,
-          "support": 2529.0
+          "recall": 0.8098,
+          "f1-score": 0.8949,
+          "support": 1199.0
         }
       },
       "confusion_matrix": {
@@ -84,32 +84,32 @@
         ],
         "matrix": [
           [
-            168,
+            149,
             0
           ],
           [
-            496,
-            2033
+            228,
+            971
           ]
         ]
       }
     },
     "logistic_regression": {
       "name": "logistic_regression",
-      "n": 2697,
-      "macro_f1": 0.9685,
+      "n": 1348,
+      "macro_f1": 0.9724,
       "per_class": {
         "FAILED": {
-          "precision": 0.9869,
-          "recall": 0.8988,
-          "f1-score": 0.9408,
-          "support": 168.0
+          "precision": 1.0,
+          "recall": 0.906,
+          "f1-score": 0.9507,
+          "support": 149.0
         },
         "SUCCESS": {
-          "precision": 0.9933,
-          "recall": 0.9992,
-          "f1-score": 0.9963,
-          "support": 2529.0
+          "precision": 0.9885,
+          "recall": 1.0,
+          "f1-score": 0.9942,
+          "support": 1199.0
         }
       },
       "confusion_matrix": {
@@ -119,33 +119,33 @@
         ],
         "matrix": [
           [
-            151,
-            17
+            135,
+            14
           ],
           [
-            2,
-            2527
+            0,
+            1199
           ]
         ]
       },
-      "brier_score_success": 0.0064
+      "brier_score_success": 0.0094
     },
     "xgboost_calibrated": {
       "name": "xgboost_calibrated",
-      "n": 2697,
-      "macro_f1": 0.9685,
+      "n": 1348,
+      "macro_f1": 0.9724,
       "per_class": {
         "FAILED": {
-          "precision": 0.9869,
-          "recall": 0.8988,
-          "f1-score": 0.9408,
-          "support": 168.0
+          "precision": 1.0,
+          "recall": 0.906,
+          "f1-score": 0.9507,
+          "support": 149.0
         },
         "SUCCESS": {
-          "precision": 0.9933,
-          "recall": 0.9992,
-          "f1-score": 0.9963,
-          "support": 2529.0
+          "precision": 0.9885,
+          "recall": 1.0,
+          "f1-score": 0.9942,
+          "support": 1199.0
         }
       },
       "confusion_matrix": {
@@ -155,34 +155,34 @@
         ],
         "matrix": [
           [
-            151,
-            17
+            135,
+            14
           ],
           [
-            2,
-            2527
+            0,
+            1199
           ]
         ]
       },
-      "brier_score_success": 0.0063
+      "brier_score_success": 0.0098
     }
   },
   "time_based_holdout": {
     "name": "xgboost_calibrated_time_holdout",
-    "n": 492,
-    "macro_f1": 0.9526,
+    "n": 162,
+    "macro_f1": 1.0,
     "per_class": {
       "FAILED": {
-        "precision": 0.9688,
-        "recall": 0.8611,
-        "f1-score": 0.9118,
-        "support": 36.0
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 6.0
       },
       "SUCCESS": {
-        "precision": 0.9891,
-        "recall": 0.9978,
-        "f1-score": 0.9934,
-        "support": 456.0
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 156.0
       }
     },
     "confusion_matrix": {
@@ -192,33 +192,33 @@
       ],
       "matrix": [
         [
-          31,
-          5
+          6,
+          0
         ],
         [
-          1,
-          455
+          0,
+          156
         ]
       ]
     },
-    "brier_score_success": 0.0109
+    "brier_score_success": 0.0023
   },
   "incident_touched_test_subset": {
     "name": "xgboost_calibrated_incident_subset",
-    "n": 41,
-    "macro_f1": 0.9698,
+    "n": 59,
+    "macro_f1": 1.0,
     "per_class": {
       "FAILED": {
         "precision": 1.0,
-        "recall": 0.9167,
-        "f1-score": 0.9565,
-        "support": 12.0
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 11.0
       },
       "SUCCESS": {
-        "precision": 0.9667,
+        "precision": 1.0,
         "recall": 1.0,
-        "f1-score": 0.9831,
-        "support": 29.0
+        "f1-score": 1.0,
+        "support": 48.0
       }
     },
     "confusion_matrix": {
@@ -229,75 +229,75 @@
       "matrix": [
         [
           11,
-          1
+          0
         ],
         [
           0,
-          29
+          48
         ]
       ]
     },
-    "brier_score_success": 0.0221
+    "brier_score_success": 0.0044
   },
   "shap_top_features": [
     {
       "feature": "observed_status_at_snapshot",
-      "mean_abs_shap": 4.1389
+      "mean_abs_shap": 3.4814
     },
     {
       "feature": "event_count",
-      "mean_abs_shap": 1.6361
-    },
-    {
-      "feature": "duplicate_event_count",
-      "mean_abs_shap": 0.3882
-    },
-    {
-      "feature": "amount",
-      "mean_abs_shap": 0.27
-    },
-    {
-      "feature": "time_since_last_event_sec",
-      "mean_abs_shap": 0.262
-    },
-    {
-      "feature": "time_since_payment_sec",
-      "mean_abs_shap": 0.2564
+      "mean_abs_shap": 2.6629
     },
     {
       "feature": "previous_success_rate",
-      "mean_abs_shap": 0.2508
+      "mean_abs_shap": 0.3236
     },
     {
-      "feature": "hour_of_day",
-      "mean_abs_shap": 0.2247
+      "feature": "duplicate_event_count",
+      "mean_abs_shap": 0.2568
+    },
+    {
+      "feature": "time_since_last_event_sec",
+      "mean_abs_shap": 0.254
+    },
+    {
+      "feature": "amount",
+      "mean_abs_shap": 0.254
     },
     {
       "feature": "previous_payment_count",
-      "mean_abs_shap": 0.185
-    },
-    {
-      "feature": "bank",
-      "mean_abs_shap": 0.1419
-    },
-    {
-      "feature": "event_order_anomaly",
-      "mean_abs_shap": 0.1322
+      "mean_abs_shap": 0.198
     },
     {
       "feature": "merchant_type",
-      "mean_abs_shap": 0.1169
+      "mean_abs_shap": 0.1853
+    },
+    {
+      "feature": "hour_of_day",
+      "mean_abs_shap": 0.1733
+    },
+    {
+      "feature": "bank",
+      "mean_abs_shap": 0.1529
+    },
+    {
+      "feature": "time_since_payment_sec",
+      "mean_abs_shap": 0.1336
+    },
+    {
+      "feature": "event_order_anomaly",
+      "mean_abs_shap": 0.0846
     },
     {
       "feature": "payment_method",
-      "mean_abs_shap": 0.085
+      "mean_abs_shap": 0.0713
     },
     {
       "feature": "day_of_week",
-      "mean_abs_shap": 0.0285
+      "mean_abs_shap": 0.0
     }
   ],
   "beats_baseline": true,
-  "best_baseline_macro_f1": 0.6476,
-  "xgboost_macro_f1": 0.9685
+  "best_baseline_macro_f1": 0.7307,
+  "xgboost_macro_f1": 0.9724
 }
