@@ -36,7 +36,7 @@ export default async function OverviewPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Stat
           label="Payment Health"
           value={overview.payment_health_pct !== null ? `${overview.payment_health_pct}%` : "—"}
@@ -53,6 +53,34 @@ export default async function OverviewPage() {
           value={`₹${overview.revenue_protected.value.toLocaleString("en-IN")}`}
           sub={<div className="mt-2"><ProvenanceBadge label={overview.revenue_protected.basis} /></div>}
         />
+        <Stat
+          label="Revenue Recovered"
+          value={`₹${overview.revenue_recovered.value.toLocaleString("en-IN")}`}
+          sub={
+            <div className="mt-2 flex items-center gap-2">
+              <ProvenanceBadge label={overview.revenue_recovered.basis} />
+              {overview.pending_escalations > 0 && (
+                <span className="text-xs text-amber-400">{overview.pending_escalations} pending review</span>
+              )}
+            </div>
+          }
+        />
+      </div>
+
+      <div className="rounded-lg border border-white/10 p-4 flex items-center justify-between">
+        <div>
+          <div className="text-sm font-medium">Found revenue at risk — now recover it</div>
+          <div className="text-xs text-white/50">
+            Run the bounded recovery workflow: executes, escalates, or blocks each RECOVER
+            decision, with a stopping rule and an audit trail.
+          </div>
+        </div>
+        <a
+          href="/recovery"
+          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-500 whitespace-nowrap"
+        >
+          Go to Recovery →
+        </a>
       </div>
 
       <div className="rounded-lg border border-white/10 p-4">

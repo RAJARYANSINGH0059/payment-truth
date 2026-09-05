@@ -91,7 +91,48 @@ export type Overview = {
   uncertain_payments: number;
   revenue_at_risk: { value: number; basis: string };
   revenue_protected: { value: number; basis: string };
+  revenue_recovered: { value: number; basis: string };
+  pending_escalations: number;
   active_incidents: number;
+};
+
+export type RecoveryAction = {
+  action_id: string;
+  batch_id: string;
+  payment_id: string;
+  attempt_number: number;
+  decision: string | null;
+  status: "EXECUTED" | "ESCALATED" | "BLOCKED_STOPPING_RULE" | "SKIPPED_BATCH_CAP";
+  action_type: string | null;
+  reason: string | null;
+  txn_value: number | null;
+  recovered_value: number | null;
+  financial_basis: string | null;
+  created_at: string | null;
+  executed_at: string | null;
+};
+
+export type RecoveryRunResult = {
+  batch_id: string;
+  candidates_considered: number;
+  executed: number;
+  escalated: number;
+  blocked_stopping_rule: number;
+  skipped_batch_cap: number;
+  total_txn_value_considered: number;
+  measured_recovered_value: { value: number; basis: string };
+  escalated_value: number;
+  actions: RecoveryAction[];
+};
+
+export type RecoverySummary = {
+  total_actions: number;
+  executed: number;
+  escalated: number;
+  blocked_stopping_rule: number;
+  skipped_batch_cap: number;
+  measured_recovered_value_by_basis: Record<string, number>;
+  escalated_value_pending_review: number;
 };
 
 export type ImportResult = {
@@ -148,4 +189,7 @@ export const api = {
   modelsMetrics: () => get<ModelMetrics>("/api/models/metrics"),
   razorpayStatus: () => get<{ environment: string; api: string; webhook: string; key_id: string | null }>("/api/razorpay/status"),
   createTestOrder: () => post("/api/razorpay/test-order"),
+  runRecoveryBatch: (limit = 100) => post<RecoveryRunResult>(`/api/recovery/run?limit=${limit}`),
+  recoveryActions: (limit = 100) => get<RecoveryAction[]>(`/api/recovery/actions?limit=${limit}`),
+  recoverySummary: () => get<RecoverySummary>("/api/recovery/summary"),
 };

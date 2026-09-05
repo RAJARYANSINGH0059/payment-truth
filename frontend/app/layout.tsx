@@ -20,6 +20,10 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "ACT",
+    items: [{ href: "/recovery", label: "Recovery" }],
+  },
+  {
     label: "LEARN",
     items: [
       { href: "/experiments", label: "Experiments" },

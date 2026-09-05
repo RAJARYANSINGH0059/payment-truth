@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models.db import Payment, Incident, AuditLog
+from ..models.db import Payment, Incident, AuditLog, RecoveryAction
 
 router = APIRouter(prefix="/api")
 
@@ -27,12 +27,24 @@ def overview(db: Session = Depends(get_db)):
         if i.resolved_at is not None and i.financial_basis == "VERIFIED"
     )
 
+    # Measured money actually recovered by the recovery-workflow engine
+    # (recovery_engine.py) — distinct from revenue_protected above, which
+    # comes from resolved incidents. This is the batch-execution ACT step:
+    # every EXECUTED action with a non-null recovered_value.
+    recovery_rows = db.query(RecoveryAction).all()
+    revenue_recovered = sum(
+        r.recovered_value or 0 for r in recovery_rows if r.status == "EXECUTED"
+    )
+    pending_escalations = sum(1 for r in recovery_rows if r.status == "ESCALATED")
+
     return {
         "payment_health_pct": payment_health,
         "total_payments": total,
         "uncertain_payments": uncertain,
         "revenue_at_risk": {"value": round(revenue_at_risk, 2), "basis": "ESTIMATED"},
         "revenue_protected": {"value": round(revenue_protected, 2), "basis": "VERIFIED"},
+        "revenue_recovered": {"value": round(revenue_recovered, 2), "basis": "SIMULATED/ESTIMATED"},
+        "pending_escalations": pending_escalations,
         "active_incidents": len(active_incidents),
     }
 

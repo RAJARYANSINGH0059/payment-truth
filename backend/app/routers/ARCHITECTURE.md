@@ -13,6 +13,7 @@ entity alone — each file owns one coherent slice of the product:
 | `simulation.py` | Getting data INTO the app (generate or upload) | `POST /api/simulation/generate`, `POST /api/data/import` |
 | `experiments.py` | Formal evaluation + LLM explanation | `GET /api/experiments/*`, `POST /api/explain` |
 | `razorpay.py` | Outbound Razorpay Test Mode calls | `GET /api/razorpay/status`, `POST /api/razorpay/test-order`, `GET /api/razorpay/verify/{id}` |
+| `recovery.py` | The ACT step — executes bounded recovery workflows | `POST /api/recovery/run`, `GET /api/recovery/actions`, `GET /api/recovery/summary` |
 
 ## Why this split
 

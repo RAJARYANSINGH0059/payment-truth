@@ -4,37 +4,37 @@
   "strategy_a_naive": {
     "description": "RECOVER immediately if observed status is FAILED at first observation, else WAIT.",
     "action_distribution": {
-      "WAIT": 1440,
-      "RECOVER": 60
+      "WAIT": 1424,
+      "RECOVER": 76
     },
-    "wrong_actions": 78,
-    "wrong_action_value": 122439.09,
-    "unnecessary_retries": 0,
-    "duplicate_risk_value": 0.0,
-    "recovered_value": 55109.13,
-    "protected_value": 1725422.59
+    "wrong_actions": 103,
+    "wrong_action_value": 110623.33,
+    "unnecessary_retries": 2,
+    "duplicate_risk_value": 1009.83,
+    "recovered_value": 101260.74,
+    "protected_value": 1510907.84
   },
   "strategy_b_payment_truth": {
     "description": "Real trained-model prediction + real decision engine (WAIT/VERIFY/RECOVER/STOP); incident-driven STOP excluded from this run to isolate state-prediction comparison.",
     "action_distribution": {
-      "WAIT": 1314,
-      "RECOVER": 50,
-      "VERIFY": 136
+      "WAIT": 1305,
+      "VERIFY": 127,
+      "RECOVER": 68
     },
-    "wrong_actions": 75,
-    "wrong_action_value": 118844.94,
+    "wrong_actions": 85,
+    "wrong_action_value": 92694.05,
     "unnecessary_retries": 0,
     "duplicate_risk_value": 0.0,
-    "recovered_value": 41347.52,
-    "protected_value": 1725422.59
+    "recovered_value": 98209.45,
+    "protected_value": 1511917.67
   },
-  "revenue_exposed_total": 177548.22,
+  "revenue_exposed_total": 210874.24,
   "improvement": {
-    "wrong_actions_reduced": 3,
-    "wrong_action_value_reduced": 3594.15,
-    "unnecessary_retries_reduced": 0,
-    "duplicate_risk_value_reduced": 0.0,
-    "protected_value_increase": 0.0
+    "wrong_actions_reduced": 18,
+    "wrong_action_value_reduced": 17929.28,
+    "unnecessary_retries_reduced": 2,
+    "duplicate_risk_value_reduced": 1009.83,
+    "protected_value_increase": 1009.83
   },
   "note": "Strategy B's VERIFY action is never counted as 'wrong' \u2014 it represents deferring to an authoritative check rather than committing to retry or wait blindly, which is the core value proposition being measured here."
 }

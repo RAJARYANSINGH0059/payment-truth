@@ -68,8 +68,24 @@ a deterministic template produces the same category of explanation from
 the same facts — the explanation always has a labeled `source`
 (`LLM` or `DETERMINISTIC_FALLBACK`), so nothing is silently faked.
 
+## The recovery workflow itself is deterministic — not an agent
+
+`backend/app/recovery_engine.py` is the ACT step: it executes the
+decisions the rules already made. It is deliberately *not* an
+open-ended agent — every branch (execute / escalate / block) is a
+plain if/else against a fixed threshold, run inside a single
+transaction, with no loop, no planning, and no ability to decide to
+retry more than `MAX_ATTEMPTS_PER_PAYMENT` times regardless of outcome.
+The escalation thresholds (transaction value, model confidence) and the
+batch exposure cap are the "compliant escalation" and "stopping rules"
+the Track 3 bar explicitly asks for — a real payments product without
+these would be committing to real money movement based on a
+probabilistic prediction alone, which is precisely the mistake this
+project's whole architecture is designed to avoid.
+
 ## The one-line summary
 
-**ML predicts. Rules decide. An LLM (optionally) narrates.** Nothing
-downstream of a financial action depends on a model that can't be
-inspected or reproduced.
+**ML predicts. Rules decide. An LLM (optionally) narrates. Bounded
+rules execute — never an open-ended agent.** Nothing downstream of a
+financial action depends on a model that can't be inspected or
+reproduced.

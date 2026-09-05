@@ -455,3 +455,183 @@ def test_webhook_handles_malformed_nested_payload_shape(client):
     r = client.post("/api/webhooks/razorpay", content=body,
                      headers={"X-Razorpay-Signature": sig, "X-Razorpay-Event-Id": "evt_malformed"})
     assert r.status_code == 200  # accepted and processed safely, not crashed
+
+
+# ---------------------------------------------------------------------------
+# Recovery Workflow Engine — the ACT step (find revenue at risk AND
+# actually recover/prevent it, with stopping rules + compliant escalation +
+# a measured batch result + an audit trail).
+# ---------------------------------------------------------------------------
+
+def _seed_recover_candidate(db, payment_id="pay_recover_1", amount=1000.0,
+                             confidence=0.9, source="SYNTHETIC", true_final_state="FAILED"):
+    from app.models.db import Payment, AuditLog
+    db.add(Payment(payment_id=payment_id, amount=amount, payment_method="upi",
+                    observed_status="FAILED", source=source, true_final_state=true_final_state))
+    db.add(AuditLog(entity_type="payment", entity_id=payment_id,
+                     recommendation="RECOVER", confidence=confidence,
+                     prediction_json={"success": 0.1, "pending": 0.1, "failed": 0.8}))
+    db.commit()
+
+
+def test_recovery_run_executes_low_value_high_confidence_payment(client):
+    from app.db import SessionLocal
+    db = SessionLocal()
+    _seed_recover_candidate(db, payment_id="pay_low_value", amount=1000.0, confidence=0.9)
+    db.close()
+
+    r = client.post("/api/recovery/run")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["executed"] == 1
+    assert body["escalated"] == 0
+    assert body["actions"][0]["status"] == "EXECUTED"
+    # SYNTHETIC + true_final_state FAILED -> recovered_value counted, basis SIMULATED
+    assert body["actions"][0]["recovered_value"] == 1000.0
+    assert body["actions"][0]["financial_basis"] == "SIMULATED"
+
+
+def test_recovery_run_escalates_high_value_payment(client):
+    from app.db import SessionLocal
+    db = SessionLocal()
+    _seed_recover_candidate(db, payment_id="pay_high_value", amount=50000.0, confidence=0.9)
+    db.close()
+
+    r = client.post("/api/recovery/run")
+    body = r.json()
+    assert body["escalated"] == 1
+    assert body["executed"] == 0
+    assert body["actions"][0]["status"] == "ESCALATED"
+    assert "auto-recovery threshold" in body["actions"][0]["reason"]
+
+
+def test_recovery_run_escalates_low_confidence_payment(client):
+    from app.db import SessionLocal
+    db = SessionLocal()
+    _seed_recover_candidate(db, payment_id="pay_low_conf", amount=1000.0, confidence=0.3)
+    db.close()
+
+    r = client.post("/api/recovery/run")
+    body = r.json()
+    assert body["escalated"] == 1
+    assert "confidence" in body["actions"][0]["reason"]
+
+
+def test_recovery_run_is_idempotent_across_batches(client):
+    """A payment already EXECUTED/ESCALATED must never be acted on again —
+    this is the guardrail that keeps the workflow bounded rather than an
+    open-ended retry loop."""
+    from app.db import SessionLocal
+    db = SessionLocal()
+    _seed_recover_candidate(db, payment_id="pay_once_only", amount=1000.0, confidence=0.9)
+    db.close()
+
+    r1 = client.post("/api/recovery/run")
+    assert r1.json()["executed"] == 1
+
+    r2 = client.post("/api/recovery/run")
+    body2 = r2.json()
+    # Still shows up as a candidate (latest recommendation is still RECOVER),
+    # but the idempotency guardrail skips it silently — no second action row.
+    assert body2["executed"] == 0
+    assert body2["escalated"] == 0
+    assert body2["blocked_stopping_rule"] == 0
+    actions = client.get("/api/recovery/actions").json()
+    assert len(actions) == 1  # still only the one EXECUTED row from the first run
+
+
+def test_recovery_run_enforces_batch_exposure_cap(client):
+    """Stopping rule: a batch will not commit more transaction value to
+    auto-action than the configured cap — remainder is left for a future
+    run rather than acted on all at once."""
+    from app.db import SessionLocal
+    db = SessionLocal()
+    # Two payments each just under the escalation threshold, so both would
+    # otherwise auto-execute; cap is set low enough that only one fits.
+    _seed_recover_candidate(db, payment_id="pay_cap_a", amount=4000.0, confidence=0.9)
+    _seed_recover_candidate(db, payment_id="pay_cap_b", amount=4000.0, confidence=0.9)
+    db.close()
+
+    r = client.post("/api/recovery/run?batch_exposure_cap=4000")
+    body = r.json()
+    assert body["executed"] == 1
+    assert body["skipped_batch_cap"] == 1
+
+
+def test_recovery_run_blocks_after_retry_cap(client):
+    """Stopping rule: a payment can only ever receive MAX_ATTEMPTS_PER_PAYMENT
+    recovery attempts. Simulated here by pre-inserting prior BLOCKED/attempt
+    rows directly, then confirming a fresh candidate still gets blocked once
+    the cap is reached."""
+    from app.db import SessionLocal
+    from app.models.db import RecoveryAction
+    from app.recovery_engine import MAX_ATTEMPTS_PER_PAYMENT
+    import uuid
+
+    db = SessionLocal()
+    _seed_recover_candidate(db, payment_id="pay_capped", amount=1000.0, confidence=0.3)
+    # Pre-seed MAX_ATTEMPTS_PER_PAYMENT prior (non-terminal) attempts so the
+    # payment is NOT already "resolved" but has hit the retry cap.
+    for i in range(MAX_ATTEMPTS_PER_PAYMENT):
+        db.add(RecoveryAction(
+            action_id=f"ra_{uuid.uuid4().hex[:8]}", batch_id="prior_batch",
+            payment_id="pay_capped", attempt_number=i + 1, decision="RECOVER",
+            status="BLOCKED_STOPPING_RULE", txn_value=1000.0,
+        ))
+    db.commit()
+    db.close()
+
+    r = client.post("/api/recovery/run")
+    body = r.json()
+    assert body["blocked_stopping_rule"] == 1
+    assert "prior recovery attempts" in body["actions"][0]["reason"]
+
+
+def test_recovery_summary_and_actions_endpoints(client):
+    from app.db import SessionLocal
+    db = SessionLocal()
+    _seed_recover_candidate(db, payment_id="pay_for_summary", amount=1000.0, confidence=0.9)
+    db.close()
+
+    client.post("/api/recovery/run")
+
+    actions = client.get("/api/recovery/actions").json()
+    assert len(actions) == 1
+    assert actions[0]["payment_id"] == "pay_for_summary"
+
+    summary = client.get("/api/recovery/summary").json()
+    assert summary["executed"] == 1
+    assert summary["measured_recovered_value_by_basis"].get("SIMULATED") == 1000.0
+
+
+def test_recovery_run_skips_payments_no_longer_recommended_recover(client):
+    """A payment whose LATEST recommendation is WAIT (not RECOVER) must
+    never be picked up, even if an older AuditLog row for it said RECOVER."""
+    from app.db import SessionLocal
+    from app.models.db import Payment, AuditLog
+    import datetime as dt
+
+    db = SessionLocal()
+    db.add(Payment(payment_id="pay_stale_recover", amount=1000.0, payment_method="upi",
+                    observed_status="SUCCESS", source="SYNTHETIC", true_final_state="CAPTURED"))
+    db.add(AuditLog(entity_type="payment", entity_id="pay_stale_recover", recommendation="RECOVER",
+                     confidence=0.9, timestamp=dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=5)))
+    db.add(AuditLog(entity_type="payment", entity_id="pay_stale_recover", recommendation="WAIT",
+                     confidence=0.9, timestamp=dt.datetime.now(dt.timezone.utc)))
+    db.commit()
+    db.close()
+
+    r = client.post("/api/recovery/run")
+    assert r.json()["candidates_considered"] == 0
+
+
+def test_overview_reports_measured_revenue_recovered(client):
+    from app.db import SessionLocal
+    db = SessionLocal()
+    _seed_recover_candidate(db, payment_id="pay_overview_recover", amount=1000.0, confidence=0.9)
+    db.close()
+
+    client.post("/api/recovery/run")
+    overview = client.get("/api/overview").json()
+    assert overview["revenue_recovered"]["value"] == 1000.0
+    assert overview["pending_escalations"] == 0

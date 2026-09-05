@@ -353,6 +353,38 @@ entry.
 auth, so it wasn't needed — simpler and no longer claims a capability
 that was never functional.
 
+## 19. Revenue at Risk was found, but never actually recovered — the biggest gap
+
+**What broke:** The whole product could detect revenue at risk, diagnose
+root cause, and label a payment `RECOVER` — but nothing in the app ever
+*acted* on that label. It just sat as text in `AuditLog`. The
+`Recommendation` table in the schema even had an `incident_id` field
+implying this was meant to be built, but it was empty in every DB.
+Re-reading Track 3's own bar closely — *"Don't just identify the
+problem. Show measured money recovered across a batch, with compliant
+escalation, stopping rules, and an audit trail"* — made clear this
+wasn't a nice-to-have, it was the actual point of the track.
+
+**How it was found:** Not by running the app and seeing an error — by
+re-reading the spec's exact wording against what the code actually did,
+after already having shipped "Revenue at Risk" and "Revenue Protected"
+metrics that looked complete but weren't backed by any executable
+action.
+
+**The fix:** `backend/app/recovery_engine.py` — a bounded batch
+executor with three guardrails: a retry cap per payment (idempotency),
+an escalation threshold on transaction value and model confidence
+(compliant escalation — high-stakes cases are routed to a human/
+merchant review queue, never auto-executed), and a total batch exposure
+cap (a stopping rule, so one run can never commit unlimited money to
+automatic action). Verified end-to-end: generated 800 synthetic
+payments, 21 were labelled RECOVER, the batch executed 21 of them and
+measured ₹18,452.31 actually recovered (against ground truth, honestly
+labeled `SIMULATED`) — visible immediately on the Overview page and a
+new dedicated `/recovery` page.
+
+---
+
 ## Why this file exists
 
 Every fix above followed the same pattern: **run the actual system
