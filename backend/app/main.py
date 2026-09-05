@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,10 +8,25 @@ from .config import settings
 from .ml_inference import model_status
 from .routers import webhooks, payments, incidents, dashboard, models_metrics, simulation, experiments, razorpay
 
-app = FastAPI(title="Payment Truth", description="Know the payment truth before you act.")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Payment Truth", description="Know the payment truth before you act.",
+              lifespan=lifespan)
 
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_credentials=True,
+    # allow_origins=["*"] deliberately does NOT pair with
+    # allow_credentials=True — browsers reject that combination per the
+    # CORS spec (a wildcard origin can't be echoed back for a credentialed
+    # request), so allow_credentials=True here was silently doing nothing
+    # useful. This app has no cookie-based auth, so it isn't needed.
+    # Found via a deliberate audit of every middleware/dependency claim
+    # against what it actually does (see docs/FAILURE_RECOVERY.md).
+    CORSMiddleware, allow_origins=["*"],
     allow_methods=["*"], allow_headers=["*"],
 )
 
@@ -26,11 +43,6 @@ app.include_router(models_metrics.router)
 app.include_router(simulation.router)
 app.include_router(experiments.router)
 app.include_router(razorpay.router)
-
-
-@app.on_event("startup")
-def on_startup():
-    init_db()
 
 
 @app.get("/health")

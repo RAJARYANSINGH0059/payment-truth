@@ -1,16 +1,24 @@
 fastapi>=0.115
 uvicorn[standard]>=0.30
 sqlalchemy>=2.0
-alembic>=1.13
 pydantic>=2.7
 pydantic-settings>=2.3
 python-multipart>=0.0.9
 razorpay>=1.4
-pandas>=2.2
-numpy>=1.26
-scikit-learn>=1.5
-xgboost>=2.1
-shap>=0.46
-joblib>=1.4
 httpx>=0.27
 PyYAML>=6.0
+
+# Pinned exactly, not >= : the committed ml/artifacts/*.joblib files are
+# pickled objects from these specific library versions. A looser pin (e.g.
+# scikit-learn>=1.5) lets a fresh `pip install` silently pull a newer
+# version than what trained the committed model, producing
+# InconsistentVersionWarning at every startup and a real (if usually
+# small) risk of prediction drift between the model that was validated
+# and the model that's actually loaded. Found and fixed during a live
+# end-to-end audit — see docs/FAILURE_RECOVERY.md.
+pandas==3.0.2
+numpy==2.4.4
+scikit-learn==1.8.0
+xgboost==3.4.1
+shap==0.52.0
+joblib==1.5.3
