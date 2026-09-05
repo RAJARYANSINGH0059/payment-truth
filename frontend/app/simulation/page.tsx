@@ -45,8 +45,8 @@ export default function SimulationPage() {
         <label className="block text-sm">
           Payments
           <input
-            type="number" value={paymentsCount}
-            onChange={(e) => setPaymentsCount(Number(e.target.value))}
+            type="number" min={1} value={paymentsCount}
+            onChange={(e) => setPaymentsCount(Math.max(1, Number(e.target.value)))}
             className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1"
           />
         </label>
@@ -61,8 +61,8 @@ export default function SimulationPage() {
         <label className="block text-sm">
           Simulated days (fewer days = denser traffic = clearer incident signal)
           <input
-            type="number" value={simDays}
-            onChange={(e) => setSimDays(Number(e.target.value))}
+            type="number" min={1} value={simDays}
+            onChange={(e) => setSimDays(Math.max(1, Number(e.target.value)))}
             className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1"
           />
         </label>
@@ -91,9 +91,9 @@ export default function SimulationPage() {
       {result && <div className="text-sm text-white/70 whitespace-pre-wrap">{result}</div>}
 
       <p className="text-xs text-white/40">
-        After generating, retrain the model with{" "}
-        <code className="rounded bg-white/10 px-1">python ml/pipeline/train.py</code> to reflect the new dataset —
-        this page only regenerates data, it does not retrain automatically.
+        The model retrains itself automatically in the background after each generation —
+        no manual command needed. Check the <a href="/models" className="underline">Models</a> page
+        a few seconds after generating to see updated metrics.
       </p>
 
       <DataImport />

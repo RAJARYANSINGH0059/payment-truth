@@ -1,9 +1,23 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// FastAPI's HTTPException returns {"detail": "..."} — surfacing that
+// message (when present) instead of just the status code gives the user
+// the actual reason ("payments must be at least 1") rather than an
+// opaque "API error 400 on /api/simulation/generate".
+async function extractErrorMessage(res: Response, path: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (body && typeof body.detail === "string") return body.detail;
+  } catch {
+    // response body wasn't JSON — fall through to the generic message
+  }
+  return `API error ${res.status} on ${path}`;
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
   if (!res.ok) {
-    throw new Error(`API error ${res.status} on ${path}`);
+    throw new Error(await extractErrorMessage(res, path));
   }
   return res.json();
 }
@@ -16,7 +30,7 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`API error ${res.status} on ${path}`);
+    throw new Error(await extractErrorMessage(res, path));
   }
   return res.json();
 }
@@ -132,6 +146,6 @@ export const api = {
   incidents: () => get<IncidentSummary[]>("/api/incidents"),
   incident: (id: string) => get(`/api/incidents/${id}`),
   modelsMetrics: () => get<ModelMetrics>("/api/models/metrics"),
-  razorpayStatus: () => get<{ environment: string; api: string; webhook: string }>("/api/razorpay/status"),
+  razorpayStatus: () => get<{ environment: string; api: string; webhook: string; key_id: string | null }>("/api/razorpay/status"),
   createTestOrder: () => post("/api/razorpay/test-order"),
 };

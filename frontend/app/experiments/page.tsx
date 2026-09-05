@@ -153,7 +153,9 @@ function PredictionVsRealityView({ data }: { data: any }) {
 }
 
 function UnseenIncidentView({ data }: { data: any }) {
-  if (data.status === "not yet run") return <NotYetRun howTo={data.how_to_run} />;
+  if (!data || data.status === "not yet run" || !data.known_configuration || !data.unseen_configuration) {
+    return <NotYetRun howTo={data?.how_to_run ?? "python experiments/unseen_incident/run.py"} />;
+  }
   const known = data.known_configuration, unseen = data.unseen_configuration;
   return (
     <div className="space-y-4">
@@ -175,7 +177,9 @@ function UnseenIncidentView({ data }: { data: any }) {
 }
 
 function MemoryView({ data }: { data: any }) {
-  if (data.status === "not yet run") return <NotYetRun howTo={data.how_to_run} />;
+  if (!data || data.status === "not yet run" || !data.without_memory || !data.with_memory) {
+    return <NotYetRun howTo={data?.how_to_run ?? "python experiments/incident_memory/run.py"} />;
+  }
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -204,29 +208,32 @@ function MemoryView({ data }: { data: any }) {
 }
 
 function RevenueView({ data }: { data: any }) {
-  if (data.status === "not yet run") return <NotYetRun howTo={data.how_to_run} />;
+  if (!data || data.status === "not yet run" || !data.strategy_a_naive || !data.strategy_b_payment_truth) {
+    return <NotYetRun howTo={data?.how_to_run ?? "python experiments/revenue_protection/run.py"} />;
+  }
   const a = data.strategy_a_naive, b = data.strategy_b_payment_truth;
+  const money = (v: number | null | undefined) => `₹${(v ?? 0).toLocaleString("en-IN")}`;
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="rounded-lg border border-white/10 p-4">
           <div className="font-medium mb-2">Naive Strategy</div>
           <p className="text-xs text-white/40 mb-2">{a.description}</p>
-          <div className="text-sm">Wrong actions: {a.wrong_actions} (₹{a.wrong_action_value.toLocaleString("en-IN")})</div>
-          <div className="text-sm">Unnecessary retries: {a.unnecessary_retries}</div>
-          <div className="text-sm">Recovered value: ₹{a.recovered_value.toLocaleString("en-IN")}</div>
+          <div className="text-sm">Wrong actions: {a.wrong_actions ?? "—"} ({money(a.wrong_action_value)})</div>
+          <div className="text-sm">Unnecessary retries: {a.unnecessary_retries ?? "—"}</div>
+          <div className="text-sm">Recovered value: {money(a.recovered_value)}</div>
         </div>
         <div className="rounded-lg border border-white/10 p-4">
           <div className="font-medium mb-2">Payment Truth</div>
           <p className="text-xs text-white/40 mb-2">{b.description}</p>
-          <div className="text-sm">Wrong actions: {b.wrong_actions} (₹{b.wrong_action_value.toLocaleString("en-IN")})</div>
-          <div className="text-sm">Unnecessary retries: {b.unnecessary_retries}</div>
-          <div className="text-sm">Recovered value: ₹{b.recovered_value.toLocaleString("en-IN")}</div>
+          <div className="text-sm">Wrong actions: {b.wrong_actions ?? "—"} ({money(b.wrong_action_value)})</div>
+          <div className="text-sm">Unnecessary retries: {b.unnecessary_retries ?? "—"}</div>
+          <div className="text-sm">Recovered value: {money(b.recovered_value)}</div>
         </div>
       </div>
       <div className="rounded-lg border border-white/10 p-4 text-sm">
-        <div>Wrong actions reduced: {data.improvement.wrong_actions_reduced}</div>
-        <div>Wrong-action value reduced: ₹{data.improvement.wrong_action_value_reduced.toLocaleString("en-IN")}</div>
+        <div>Wrong actions reduced: {data.improvement?.wrong_actions_reduced ?? "—"}</div>
+        <div>Wrong-action value reduced: {money(data.improvement?.wrong_action_value_reduced)}</div>
       </div>
       <p className="text-xs text-white/40">{data.note}</p>
     </div>
