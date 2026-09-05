@@ -40,13 +40,23 @@ def predicted_class_from(prediction_json: dict) -> str | None:
 def evaluate(prediction_json: dict, actual_state: str | None) -> Verdict | None:
     """Returns None if either the prediction or the actual outcome isn't
     known yet — a payment mid-flight has nothing to evaluate, and that's
-    reported as 'not yet resolved', never guessed."""
+    reported as 'not yet resolved', never guessed. Also returns None if
+    actual_state doesn't map to a recognized class — e.g. a typo'd or
+    unexpected value in a user-uploaded CSV/JSON ("PAID_LATE" instead of
+    "SUCCESS"). Found via testing the upload path with realistic bad
+    input: the old code silently let ANY string through as a fake class
+    label, which then crashed aggregate()'s fixed confusion matrix with a
+    KeyError the moment one unrecognized value reached it — see
+    docs/FAILURE_RECOVERY.md."""
     if not actual_state:
         return None
     predicted = predicted_class_from(prediction_json)
     if predicted is None:
         return None
-    actual_class = STATE_TO_CLASS.get(actual_state.upper(), actual_state.upper())
+    key = actual_state.upper()
+    if key not in STATE_TO_CLASS:
+        return None
+    actual_class = STATE_TO_CLASS[key]
     prob_actual = (prediction_json or {}).get(actual_class.lower())
     return Verdict(
         predicted_class=predicted, actual_class=actual_class,
@@ -62,14 +72,23 @@ def aggregate(verdicts: list[Verdict]) -> dict:
     matrix = {p: {a: 0 for a in CLASSES} for p in CLASSES}
     correct = 0
     confidences = []
+    skipped_unrecognized = 0
     for v in verdicts:
+        # Defense in depth: evaluate() already filters unrecognized
+        # classes before constructing a Verdict, but this function's job
+        # is a reported accuracy number — it should never crash or
+        # silently corrupt the matrix even if called with unexpected
+        # data from some future code path.
+        if v.predicted_class not in CLASSES or v.actual_class not in CLASSES:
+            skipped_unrecognized += 1
+            continue
         matrix[v.predicted_class][v.actual_class] += 1
         if v.was_correct:
             correct += 1
         if v.probability_of_actual_class is not None:
             confidences.append(v.probability_of_actual_class)
 
-    total = len(verdicts)
+    total = len(verdicts) - skipped_unrecognized
     avg_confidence = round(sum(confidences) / len(confidences), 4) if confidences else None
     # Brier-style calibration check: mean squared error between the
     # probability assigned to the actual class and 1.0 (perfect

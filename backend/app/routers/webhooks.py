@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Header, Request, Response
 from sqlalchemy.orm import Session
@@ -30,7 +30,7 @@ def _process_event(normalized: dict):
             payment_id=payment_id, order_id=normalized.get("order_id"),
             amount=(normalized.get("amount") or 0) / 100.0,
             payment_method=normalized.get("method"), bank=normalized.get("bank"),
-            created_at=datetime.utcnow(), source="RAZORPAY_TEST",
+            created_at=datetime.now(timezone.utc), source="RAZORPAY_TEST",
             observed_status=normalized["observed_status"],
         )
         db.add(payment)
@@ -46,7 +46,7 @@ def _process_event(normalized: dict):
         "bank": normalized.get("bank") or "UNKNOWN",
         "merchant_type": "unknown", "observed_status_at_snapshot": normalized["observed_status"],
         "amount": (normalized.get("amount") or 0) / 100.0,
-        "hour_of_day": datetime.utcnow().hour, "day_of_week": datetime.utcnow().weekday(),
+        "hour_of_day": datetime.now(timezone.utc).hour, "day_of_week": datetime.now(timezone.utc).weekday(),
         "previous_payment_count": 0, "previous_success_rate": 0.9,
         "event_count": 1, "duplicate_event_count": 0,
         "time_since_payment_sec": 0, "time_since_last_event_sec": 0,
@@ -100,12 +100,23 @@ async def razorpay_webhook(
         return Response(status_code=400, content=json.dumps(
             {"status": "rejected", "reason": "malformed body"}))
 
+    if not isinstance(payload, dict):
+        # Valid JSON but not an object (e.g. a bare array or number) —
+        # found by testing exactly this case: normalize_webhook_payload()
+        # unconditionally calls payload.get(...), which crashed with an
+        # unhandled 500 traceback instead of a clean rejection. A webhook
+        # endpoint is a public, unauthenticated-until-signature-checked
+        # surface, so any malformed-but-technically-valid JSON must be
+        # rejected cleanly, never allowed to reach application code as-is.
+        return Response(status_code=400, content=json.dumps(
+            {"status": "rejected", "reason": "malformed body: expected a JSON object"}))
+
     normalized = normalize_webhook_payload(payload, x_razorpay_event_id or "")
 
     db.add(PaymentEvent(
         event_id=f"{x_razorpay_event_id or 'noid'}-{normalized['event_type']}",
         payment_id=normalized["payment_id"], event_type=normalized["event_type"],
-        received_time=datetime.utcnow(), razorpay_event_id=x_razorpay_event_id,
+        received_time=datetime.now(timezone.utc), razorpay_event_id=x_razorpay_event_id,
         raw_payload=payload, source="RAZORPAY_TEST",
     ))
     db.commit()

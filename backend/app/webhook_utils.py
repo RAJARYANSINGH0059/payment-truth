@@ -35,11 +35,21 @@ EVENT_TYPE_TO_OBSERVED = {
 def normalize_webhook_payload(payload: dict, razorpay_event_id: str) -> dict:
     """Convert a raw Razorpay webhook body into our internal event schema
     (section 50). Never train a model directly on raw Razorpay JSON — this
-    normalized shape is the only thing that should reach the DB/ML layer."""
+    normalized shape is the only thing that should reach the DB/ML layer.
+
+    Every nested .get() defaults to {} rather than assuming a dict, since
+    a genuine-looking webhook body can still have an unexpected shape at
+    any nesting level (found via testing payload["payload"] as a string
+    instead of an object — crashed with AttributeError before this fix).
+    """
+    def _safe_dict(x):
+        return x if isinstance(x, dict) else {}
+
     event_type = payload.get("event", "unknown")
+    inner = _safe_dict(payload.get("payload"))
     entity = (
-        payload.get("payload", {}).get("payment", {}).get("entity", {})
-        or payload.get("payload", {}).get("order", {}).get("entity", {})
+        _safe_dict(_safe_dict(inner.get("payment")).get("entity"))
+        or _safe_dict(_safe_dict(inner.get("order")).get("entity"))
     )
     return {
         "source": "RAZORPAY_TEST",

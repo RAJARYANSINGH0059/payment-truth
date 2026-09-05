@@ -556,6 +556,10 @@ def main():
         sys.exit(1)
     print("DATA QUALITY: PASS (no duplicate IDs, no invalid states, no pre-creation snapshots)")
 
+    if not payments:
+        print("\nNo payments requested (--payments 0) — nothing to write, exiting cleanly.")
+        return
+
     scenario_counts = {}
     for p in payments:
         scenario_counts[p["scenario"]] = scenario_counts.get(p["scenario"], 0) + 1
