@@ -9,6 +9,7 @@ COPY backend/ ./backend/
 COPY data/ ./data/
 COPY ml/ ./ml/
 COPY scripts/ ./scripts/
+COPY experiments/ ./experiments/
 
 ENV ML_ARTIFACTS_DIR=/app/ml/artifacts
 
