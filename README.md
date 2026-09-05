@@ -4,10 +4,15 @@
 
 Built for **Razorpay AI Buildathon 2026 — Track 3: AI Revenue Recovery**.
 
-Payment Truth is an ML-powered payment-state intelligence system that estimates the
-most probable true state of uncertain payments from information available at that
-moment, detects broader payment incidents, estimates financial exposure, and
-recommends a bounded next action (`WAIT` / `VERIFY` / `RECOVER` / `STOP`).
+> Track 3's own bar: *"Don't just identify the problem. Show measured
+> money recovered across a batch, with compliant escalation, stopping
+> rules, and an audit trail."*
+
+Payment Truth closes that exact loop: detect revenue at risk from
+payment-state uncertainty → diagnose the root cause with evidence → run
+it through a bounded, auditable decision policy (`WAIT` / `VERIFY` /
+`RECOVER` / `STOP` — never an open-ended action) → measure the actual
+result against a naive baseline on a real batch (`experiments/revenue_protection/`).
 
 The ML system is trained and evaluated on a domain-specific synthetic event
 simulator with an explicit **true-world** vs **observed-world** separation, and its
@@ -16,6 +21,11 @@ webhooks. It does **not** have access to Razorpay production data, and no number
 in this repository claim measured production accuracy or production financial
 savings — everything is labeled `SIMULATION` / `SYNTHETIC` / `ESTIMATED` /
 `VERIFIED` where it applies.
+
+**Two docs written specifically for this submission's judging criteria:**
+[`docs/AI_JUDGMENT.md`](docs/AI_JUDGMENT.md) — exactly where and why ML,
+deterministic rules, and an LLM are each used, and [`docs/FAILURE_RECOVERY.md`](docs/FAILURE_RECOVERY.md) —
+a dated log of real bugs found by actually running the system, and how each was fixed.
 
 ## The core idea
 
@@ -32,6 +42,7 @@ TRUE WORLD  ──▶ EVENT GENERATION ──▶ EVENT DELIVERY ──▶ OBSERV
                                                               │
                                                         EVALUATION
 ```
+
 
 A payment can look failed to the merchant while the true payment is still on its
 way to being captured (late capture), or a webhook can arrive duplicated or out
