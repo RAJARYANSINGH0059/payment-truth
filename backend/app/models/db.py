@@ -583,37 +583,45 @@ class DataSource(Base):
 # ---------------------------------------------------------------------------
 # RECOVERY ACTIONS
 # ---------------------------------------------------------------------------
+#
+# This model is required by:
+#
+#   backend/app/recovery_engine.py
+#   backend/app/routers/recovery.py
+#
+# The recovery engine uses these fields for:
+#   - idempotency
+#   - retry caps
+#   - batch exposure caps
+#   - escalation
+#   - recovery measurement
+#   - audit trail
+#
+# Status values currently used by recovery_engine.py:
+#
+#   EXECUTED
+#   ESCALATED
+#   BLOCKED_STOPPING_RULE
+#   SKIPPED_BATCH_CAP
+#
+# ---------------------------------------------------------------------------
 
 class RecoveryAction(Base):
-    """
-    Stores every action taken by the bounded recovery workflow.
-
-    Used by:
-        backend/app/recovery_engine.py
-        backend/app/routers/recovery.py
-
-    Status values:
-        EXECUTED
-        ESCALATED
-        BLOCKED_STOPPING_RULE
-        SKIPPED_BATCH_CAP
-    """
-
     __tablename__ = "recovery_actions"
 
-    # Unique recovery action identifier
+    # Unique identifier for this recovery action
     action_id = Column(
         String,
         primary_key=True,
     )
 
-    # Recovery batch identifier
+    # Identifier of the recovery batch that created this action
     batch_id = Column(
         String,
         index=True,
     )
 
-    # Payment this action belongs to
+    # Payment being acted upon
     payment_id = Column(
         String,
         ForeignKey("payments.payment_id"),
@@ -626,7 +634,8 @@ class RecoveryAction(Base):
         default=1,
     )
 
-    # Decision that caused this recovery action
+    # Original decision that caused the recovery workflow
+    # e.g. RECOVER
     decision = Column(String)
 
     # EXECUTED / ESCALATED /
@@ -647,19 +656,20 @@ class RecoveryAction(Base):
         nullable=True,
     )
 
-    # Explanation for why the action was taken
+    # Human-readable explanation for the action
     reason = Column(
         Text,
         nullable=True,
     )
 
-    # Transaction value considered by the recovery engine
+    # Transaction amount considered for this action
     txn_value = Column(
         Float,
         nullable=True,
     )
 
-    # Amount actually measured as recovered
+    # Amount actually measured as recovered.
+    # Can be NULL when recovery has not been verified/measured.
     recovered_value = Column(
         Float,
         nullable=True,
@@ -671,13 +681,13 @@ class RecoveryAction(Base):
         nullable=True,
     )
 
-    # When the action record was created
+    # When the recovery action was created
     created_at = Column(
         DateTime,
         default=utcnow,
     )
 
-    # When the action was executed
+    # When the action was actually executed
     executed_at = Column(
         DateTime,
         nullable=True,
