@@ -6,7 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from .db import init_db, engine
 from .config import settings
 from .ml_inference import model_status
-from .routers import webhooks, payments, incidents, dashboard, models_metrics, simulation, experiments, razorpay
+
+from .routers import (
+    webhooks,
+    payments,
+    incidents,
+    dashboard,
+    models_metrics,
+    simulation,
+    experiments,
+    razorpay,
+    recovery,
+)
 
 
 @asynccontextmanager
@@ -15,41 +26,69 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Payment Truth", description="Know the payment truth before you act.",
-              lifespan=lifespan)
-
-app.add_middleware(
-    # allow_origins=["*"] deliberately does NOT pair with
-    # allow_credentials=True — browsers reject that combination per the
-    # CORS spec (a wildcard origin can't be echoed back for a credentialed
-    # request), so allow_credentials=True here was silently doing nothing
-    # useful. This app has no cookie-based auth, so it isn't needed.
-    # Found via a deliberate audit of every middleware/dependency claim
-    # against what it actually does (see docs/FAILURE_RECOVERY.md).
-    CORSMiddleware, allow_origins=["*"],
-    allow_methods=["*"], allow_headers=["*"],
+app = FastAPI(
+    title="Payment Truth",
+    description="Know the payment truth before you act.",
+    lifespan=lifespan,
 )
 
-# Grouped by responsibility (see backend/app/routers/ARCHITECTURE.md):
-# webhooks (Razorpay inbound), payments/incidents (core entities),
-# dashboard (aggregates), models_metrics (ML reporting), simulation
-# (data generation/import), experiments (formal evaluation + LLM
-# explanation), razorpay (outbound Test Mode API calls).
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# --------------------------------------------------
+# ROUTERS
+# --------------------------------------------------
+
+# Webhooks — Razorpay inbound events
 app.include_router(webhooks.router)
+
+# Core payment and incident entities
 app.include_router(payments.router)
 app.include_router(incidents.router)
+
+# Dashboard / overview
 app.include_router(dashboard.router)
+
+# ML model reporting
 app.include_router(models_metrics.router)
+
+# Simulation / data generation
 app.include_router(simulation.router)
+
+# Experiments / evaluation / explanations
 app.include_router(experiments.router)
+
+# Razorpay outbound Test Mode API calls
 app.include_router(razorpay.router)
 
+# Recovery workflow
+app.include_router(recovery.router)
+
+
+# --------------------------------------------------
+# HEALTH CHECK
+# --------------------------------------------------
 
 @app.get("/health")
 def health():
-    """Section 43 — must return status:ok even when Razorpay/ML aren't
-    configured; the app must never fail to start because of that."""
+    """
+    Health endpoint.
+
+    The API must return status:ok even when Razorpay
+    or ML components are not configured.
+
+    The application must never fail to start simply
+    because an optional external service is unavailable.
+    """
+
     db_ok = True
+
     try:
         with engine.connect():
             pass
@@ -61,5 +100,9 @@ def health():
         "database": "ok" if db_ok else "unavailable",
         "ml_model": model_status(),
         "simulation": "available",
-        "razorpay": "configured" if settings.razorpay_configured else "not_configured",
+        "razorpay": (
+            "configured"
+            if settings.razorpay_configured
+            else "not_configured"
+        ),
     }
