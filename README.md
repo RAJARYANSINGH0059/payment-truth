@@ -11,15 +11,8 @@ Built for **Razorpay AI Buildathon 2026 — Track 3: AI Revenue Recovery**.
 Payment Truth closes that exact loop: detect revenue at risk from
 payment-state uncertainty → diagnose the root cause with evidence → run
 it through a bounded, auditable decision policy (`WAIT` / `VERIFY` /
-`RECOVER` / `STOP` — never an open-ended action) → **actually execute
-the recovery** on every `RECOVER` payment via `backend/app/recovery_engine.py`
-(`/recovery` page, `POST /api/recovery/run`) — bounded by a per-payment
-retry cap, a compliant escalation threshold (high-value or low-confidence
-cases are routed to human/merchant review, never auto-executed), and a
-per-batch exposure cap — → measure the actual result, both live
-(`/api/recovery/summary`, fed into the Overview page's Revenue Recovered
-figure) and as a formal offline A/B against a naive baseline
-(`experiments/revenue_protection/`).
+`RECOVER` / `STOP` — never an open-ended action) → measure the actual
+result against a naive baseline on a real batch (`experiments/revenue_protection/`).
 
 The ML system is trained and evaluated on a domain-specific synthetic event
 simulator with an explicit **true-world** vs **observed-world** separation, and its
@@ -28,6 +21,11 @@ webhooks. It does **not** have access to Razorpay production data, and no number
 in this repository claim measured production accuracy or production financial
 savings — everything is labeled `SIMULATION` / `SYNTHETIC` / `ESTIMATED` /
 `VERIFIED` where it applies.
+
+**Two docs written specifically for this submission's judging criteria:**
+[`docs/AI_JUDGMENT.md`](docs/AI_JUDGMENT.md) — exactly where and why ML,
+deterministic rules, and an LLM are each used, and [`docs/FAILURE_RECOVERY.md`](docs/FAILURE_RECOVERY.md) —
+a dated log of real bugs found by actually running the system, and how each was fixed.
 
 ## The core idea
 
@@ -108,6 +106,53 @@ days, so this deploy intentionally skips it and runs on SQLite instead (see
 the comment in `render.yaml`) — the data resets on redeploy/spin-down, which
 is fine for a demo but not for production.
 
+### 1. Backend → Render
+
+1. Go to https://render.com → sign up with GitHub (no card needed).
+2. **New +** → **Blueprint** → connect your `payment-truth` repo. Render
+   reads `render.yaml` from this repo automatically and provisions the
+   `payment-truth-api` web service on the **Free** plan.
+   - If you'd rather not use the Blueprint flow: **New +** → **Web Service**
+     → connect the repo → Runtime: **Docker** → Dockerfile path:
+     `backend/Dockerfile` → Docker context: `.` (repo root) → Instance type:
+     **Free**.
+3. Leave `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET`
+   blank for now — the app runs fine in Simulation Mode without them
+   (`/health` will just report `"razorpay": "not_configured"`).
+4. Deploy. Render gives you a URL like `https://payment-truth-api.onrender.com`.
+5. Confirm it worked: open `https://<your-url>/health` in a browser — you
+   should see `{"status": "ok", ...}`. First load may take ~30-60s if the
+   service had spun down.
+
+### 2. Frontend → Vercel
+
+1. Go to https://vercel.com → sign up with GitHub (no card needed).
+2. **Add New** → **Project** → import the same `payment-truth` repo.
+3. Set **Root Directory** to `frontend` (important — Vercel needs to build
+   from that subfolder, not the repo root).
+4. Framework preset should auto-detect as **Next.js**.
+5. Before deploying, add an environment variable:
+   `NEXT_PUBLIC_API_URL` = the Render URL from step 1
+   (e.g. `https://payment-truth-api.onrender.com`).
+6. Deploy. Vercel gives you a URL like `https://payment-truth.vercel.app` —
+   that's your public demo link.
+
+### USER ACTION REQUIRED checklist
+
+```
+ACTION: Sign up at render.com with GitHub, deploy via Blueprint (render.yaml)
+WHERE:  render.com dashboard
+VALUE:  no values needed to start — Razorpay fields can stay blank
+WHEN COMPLETE: send me the resulting *.onrender.com URL
+
+ACTION: Sign up at vercel.com with GitHub, import repo with Root Directory=frontend
+WHERE:  vercel.com dashboard
+VALUE:  NEXT_PUBLIC_API_URL = your Render backend URL from the step above
+WHEN COMPLETE: send me the resulting *.vercel.app URL
+```
+
+Once both URLs exist, tell me and I'll walk through the Razorpay Dashboard
+webhook step (which needs the public Render URL to point at).
 
 ## Enabling Razorpay Test Mode
 
@@ -147,14 +192,12 @@ flowchart TD
     subgraph Backend["BACKEND (FastAPI)"]
         LOADER["simulation_loader.py<br/>scores every payment with<br/>the real trained model"]
         DECIDE["decision_engine.py<br/>root-cause + financial-impact<br/>+ WAIT/VERIFY/RECOVER/STOP"]
-        RECOVER["recovery_engine.py<br/>ACT: executes RECOVER decisions —<br/>escalate / execute / stopping rule"]
         DB[("SQLite / PostgreSQL")]
         ML["ml_inference.py<br/>loads ml/artifacts, never<br/>retrains at request time"]
     end
 
     subgraph Frontend["FRONTEND (Next.js)"]
         UI_UNDERSTAND["UNDERSTAND<br/>Overview · Payments · Incidents"]
-        UI_ACT["ACT<br/>Recovery"]
         UI_LEARN["LEARN<br/>Experiments · Models · Audit"]
         UI_DATA["DATA SOURCES<br/>Simulation · Razorpay Test"]
     end
@@ -165,15 +208,11 @@ flowchart TD
     LOADER --> ML
     ML --> DECIDE
     DECIDE --> DB
-    DB --> RECOVER
-    RECOVER --> DB
     LOADER --> DB
     DB --> UI_UNDERSTAND
-    DB --> UI_ACT
     DB --> UI_LEARN
     UI_DATA -.triggers.-> SIM
     UI_DATA -.triggers.-> UPLOAD
-    UI_ACT -.triggers.-> RECOVER
 ```
 
 ### Repository structure
@@ -197,7 +236,6 @@ payment-truth/
 │   └── app/
 │       ├── main.py                  # FastAPI app, /health
 │       ├── decision_engine.py       # root-cause + financial-impact + WAIT/VERIFY/RECOVER/STOP
-│       ├── recovery_engine.py       # ACT: executes RECOVER decisions — bounded, auditable
 │       ├── simulation_loader.py     # scores generated/imported data with the real model
 │       ├── prediction_evaluation.py # Prediction vs Reality verdict computation
 │       ├── historical_similarity.py # structured incident-similarity matching
@@ -208,8 +246,8 @@ payment-truth/
 │       └── routers/                 # split by responsibility — see routers/ARCHITECTURE.md
 │           ├── payments.py · incidents.py · dashboard.py
 │           ├── models_metrics.py · simulation.py
-│           ├── experiments.py · razorpay.py · webhooks.py · recovery.py
-├── frontend/                  # Next.js, nav grouped UNDERSTAND / ACT / LEARN / DATA SOURCES / SYSTEM
+│           ├── experiments.py · razorpay.py · webhooks.py
+├── frontend/                  # Next.js, nav grouped UNDERSTAND / LEARN / DATA SOURCES / SYSTEM
 ├── docs/
 │   ├── ASSUMPTIONS.md         # synthetic vs documented-Razorpay-behavior distinction
 │   ├── ml-results.md          # every reported number, reproducible

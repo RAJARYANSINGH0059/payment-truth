@@ -161,28 +161,6 @@ class Experiment(Base):
     timestamp = Column(DateTime, default=utcnow)
 
 
-class RecoveryAction(Base):
-    """Bounded recovery-workflow execution log (Track 3 bar: 'measured money
-    recovered across a batch, with compliant escalation, stopping rules,
-    and an audit trail'). One row per attempted action on a payment —
-    never a second EXECUTED/ESCALATED row for the same payment_id, which
-    is what makes the workflow bounded rather than an open retry loop."""
-    __tablename__ = "recovery_actions"
-    action_id = Column(String, primary_key=True)
-    batch_id = Column(String, index=True)
-    payment_id = Column(String, ForeignKey("payments.payment_id"), index=True)
-    attempt_number = Column(Integer, default=1)
-    decision = Column(String)  # the decision engine's output that triggered this row (normally RECOVER)
-    status = Column(String)  # EXECUTED / ESCALATED / BLOCKED_STOPPING_RULE / SKIPPED_BATCH_CAP
-    action_type = Column(String, nullable=True)  # RETRY_SIMULATED / RETRY_LINK_CREATED / ESCALATE_TO_MERCHANT
-    reason = Column(Text, nullable=True)
-    txn_value = Column(Float, nullable=True)
-    recovered_value = Column(Float, nullable=True)
-    financial_basis = Column(String, nullable=True)  # VERIFIED / ESTIMATED / PREDICTED / SIMULATED
-    created_at = Column(DateTime, default=utcnow)
-    executed_at = Column(DateTime, nullable=True)
-
-
 class DataSource(Base):
     __tablename__ = "data_sources"
     id = Column(Integer, primary_key=True, autoincrement=True)

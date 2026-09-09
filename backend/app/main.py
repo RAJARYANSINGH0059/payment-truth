@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .db import init_db, engine
 from .config import settings
 from .ml_inference import model_status
-from .routers import webhooks, payments, incidents, dashboard, models_metrics, simulation, experiments, razorpay, recovery
+from .routers import webhooks, payments, incidents, dashboard, models_metrics, simulation, experiments, razorpay
 
 
 @asynccontextmanager
@@ -34,8 +34,7 @@ app.add_middleware(
 # webhooks (Razorpay inbound), payments/incidents (core entities),
 # dashboard (aggregates), models_metrics (ML reporting), simulation
 # (data generation/import), experiments (formal evaluation + LLM
-# explanation), razorpay (outbound Test Mode API calls), recovery (the
-# ACT step — executes bounded recovery workflows on RECOVER decisions).
+# explanation), razorpay (outbound Test Mode API calls).
 app.include_router(webhooks.router)
 app.include_router(payments.router)
 app.include_router(incidents.router)
@@ -44,7 +43,6 @@ app.include_router(models_metrics.router)
 app.include_router(simulation.router)
 app.include_router(experiments.router)
 app.include_router(razorpay.router)
-app.include_router(recovery.router)
 
 
 @app.get("/health")
