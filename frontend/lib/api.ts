@@ -248,6 +248,48 @@ export type RecoverySummary = {
 };
 
 // -----------------------------------------------------------------------------
+// TEMPORAL REPLAY
+// -----------------------------------------------------------------------------
+// Mirrors backend/app/temporal_replay.py::build_replay exactly.
+
+export type ReplayData = {
+  payment_id: string;
+  scenario: string | null;
+
+  true_world: {
+    created_at: string | null;
+    resolved_at: string | null;
+    final_true_state: string | null;
+  };
+
+  event_delivery_timeline: Array<{
+    event_time: string;
+    received_time: string;
+    event_type: string;
+    duplicate: boolean;
+    out_of_order: boolean;
+  }>;
+
+  observation_snapshots: Array<{
+    observation_at: string;
+    seconds_after_creation: string | null;
+    observed_status: string;
+    events_known_at_this_point: string;
+  }>;
+
+  ground_truth_revealed_later: {
+    final_observed_state: string | null;
+    note: string;
+  };
+
+  naive_last_known_status_vs_truth: {
+    last_known_before_resolution: string | null;
+    actual_final_state: string | null;
+    matched: boolean | null;
+  };
+};
+
+// -----------------------------------------------------------------------------
 // API
 // -----------------------------------------------------------------------------
 
@@ -351,6 +393,11 @@ export const api = {
   payment: (id: string) =>
     get<PaymentDetail>(
       `/api/payments/${id}`
+    ),
+
+  replay: (id: string) =>
+    get<ReplayData>(
+      `/api/payments/${id}/replay`
     ),
 
   // Incidents

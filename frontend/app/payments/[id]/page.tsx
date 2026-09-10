@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import ProvenanceBadge from "@/components/ProvenanceBadge";
+import TemporalReplay from "@/components/TemporalReplay";
 
 export default async function PaymentDetailPage({ params }: { params: { id: string } }) {
   const payment = await api.payment(params.id).catch(() => null);
@@ -31,6 +32,13 @@ export default async function PaymentDetailPage({ params }: { params: { id: stri
           <div className="text-xs text-white/50">True Final State</div>
           <div className="text-lg font-semibold">{payment.true_final_state || "not yet resolved"}</div>
         </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold text-white/70 mb-2">
+          Temporal Replay — true world vs. observed world
+        </h2>
+        <TemporalReplay paymentId={payment.payment_id} />
       </div>
 
       <div>

@@ -1,13 +1,21 @@
 """Payment listing + detail, including the Prediction vs Reality verdict per prediction."""
 
+import os as _os
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models.db import Payment, AuditLog
 from ..prediction_evaluation import evaluate as evaluate_prediction
+from ..temporal_replay import build_replay
 
 router = APIRouter(prefix="/api")
+
+# Same pattern used in routers/simulation.py and routers/api.py — resolves
+# to the repo root regardless of the process's working directory.
+_REPO_ROOT = _os.path.join(_os.path.dirname(__file__), "..", "..", "..")
+_DEMO_DATA_DIR = _os.path.join(_REPO_ROOT, "data", "demo")
 
 @router.get("/payments")
 def list_payments(limit: int = 50, db: Session = Depends(get_db)):
@@ -43,3 +51,17 @@ def get_payment(payment_id: str, db: Session = Depends(get_db)):
         "true_final_state": p.true_final_state,
         "timeline": timeline,
     }
+
+@router.get("/payments/{payment_id}/replay")
+def get_payment_replay(payment_id: str):
+    """Backs the Temporal Replay UI (frontend/components/TemporalReplay.tsx).
+    Reads straight from data/demo/*.csv — see temporal_replay.py for why.
+    Returns 404 (not a crash) if this payment isn't in the current CSVs."""
+    replay = build_replay(payment_id, _DEMO_DATA_DIR)
+    if replay is None:
+        raise HTTPException(
+            404,
+            "No replay data for this payment — it may predate the current "
+            "dataset, or came from a webhook/upload rather than the simulator.",
+        )
+    return replay
